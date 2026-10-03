@@ -25,10 +25,10 @@ export default function Participants() {
     if (error) return setMsg({ t: 'err', m: frError(error) });
     load();
   }
+
   async function remove(en, who) {
     if (!confirm(`Retirer ${who} de cette ronde? Ses choix de la ronde seront supprimés.`)) return;
-    await supabase.from('picks').delete().eq('round_id', en.round_id).eq('user_id', en.user_id);
-    const { error } = await supabase.from('round_entries').delete().eq('round_id', en.round_id).eq('user_id', en.user_id);
+    const { error } = await supabase.rpc('admin_remove_entry', { p_round: en.round_id, p_user: en.user_id });
     if (error) return setMsg({ t: 'err', m: frError(error) });
     load();
   }
