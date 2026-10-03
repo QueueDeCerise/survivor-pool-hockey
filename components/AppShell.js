@@ -20,7 +20,9 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
       supabase.from('rule_acceptances').select('version, accepted_at').eq('user_id', uid).eq('version', RULES_VERSION).maybeSingle(),
     ]);
     if (!profile) { await supabase.auth.signOut(); router.replace('/connexion'); return; }
-    if (!acc && !allowWithoutRules) { router.replace('/reglements'); return; }
+    // Le gestionnaire ne participe pas: pas de règlements à accepter, pas de prédictions
+    if (profile.is_admin && pathname.startsWith('/predictions')) { router.replace('/admin'); return; }
+    if (!acc && !allowWithoutRules && !profile.is_admin) { router.replace('/reglements'); return; }
     if (requireAdmin && !profile.is_admin) { router.replace('/predictions'); return; }
     setCtx({ user: session.user, profile, acceptance: acc, reload: load });
   }
@@ -36,24 +38,21 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
 
   if (!ctx) return <div className="loading">Chargement…</div>;
 
-  const links = [
-    ['/predictions', 'Prédiction'],
-    ['/classement', 'Classement'],
-    ['/profil', 'Profil'],
-  ];
-  if (ctx.profile.is_admin) links.push(['/admin', 'Gestion']);
+  const links = ctx.profile.is_admin
+    ? [['/admin', 'Gestion'], ['/classement', 'Classement'], ['/profil', 'Profil']]
+    : [['/predictions', 'Prédiction'], ['/classement', 'Classement'], ['/profil', 'Profil']];
 
   return (
     <div className="shell">
       <header className="top">
         <div>
           <div className="who">{displayName(ctx.profile)}</div>
-          <div className="sub">Survivor Pool Hockey</div>
+          <div className="sub">{ctx.profile.is_admin ? 'Gestionnaire du pool' : 'Survivor Pool Hockey'}</div>
         </div>
         <button className="btn secondary small" onClick={() => supabase.auth.signOut()}>Quitter</button>
       </header>
       {typeof children === 'function' ? children(ctx) : children}
-      {ctx.acceptance && (
+      {(ctx.acceptance || ctx.profile.is_admin) && (
         <nav className="nav">
           {links.map(([href, label]) => (
             <Link key={href} href={href} className={pathname.startsWith(href) ? 'on' : ''}>{label}</Link>

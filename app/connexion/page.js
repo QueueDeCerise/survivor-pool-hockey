@@ -12,7 +12,7 @@ export default function Connexion() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { if (data.session) router.replace('/predictions'); });
+    supabase.auth.getSession().then(({ data }) => { if (data.session) router.replace('/'); });
   }, [router]);
 
   async function submit(e) {
@@ -21,7 +21,7 @@ export default function Connexion() {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
     if (error) { setError(frError(error)); return; }
-    router.replace('/predictions');
+    router.replace('/');
   }
 
   return (

@@ -16,14 +16,15 @@ function Profile({ ctx }) {
   const left = Math.max(0, 2 - p.nickname_changes);
 
   useEffect(() => {
+    if (p.is_admin) return;
     supabase.from('round_entries').select('*').eq('user_id', ctx.user.id).then(({ data }) => setEntries(data || []));
     supabase.from('rounds').select('*').order('number').then(({ data }) => setRounds(data || []));
-  }, [ctx.user.id]);
+  }, [ctx.user.id, p.is_admin]);
 
   async function saveNick(e) {
     e.preventDefault();
     if ((nick.trim() || null) === (p.nickname || null)) return;
-    if (!confirm(`Changer ton surnom? Il te restera ${left - 1} changement(s).`)) return;
+    if (!p.is_admin && !confirm(`Changer ton surnom? Il te restera ${left - 1} changement(s).`)) return;
     const { error } = await supabase.from('profiles').update({ nickname: nick.trim() || null }).eq('id', p.id);
     if (error) return setMsg({ t: 'err', m: frError(error) });
     setMsg({ t: 'ok', m: 'Surnom modifié.' });
@@ -44,39 +45,45 @@ function Profile({ ctx }) {
   return (
     <main className="page">
       <div>
-        <div className="eyebrow">Mon profil</div>
+        <div className="eyebrow">{p.is_admin ? 'Compte gestionnaire' : 'Mon profil'}</div>
         <h1>{p.nickname || p.first_name}</h1>
         <div className="fine">{p.first_name} {p.last_name} · {ctx.user.email} (privé)</div>
       </div>
       {msg && <div className={'msg ' + msg.t}>{msg.m}</div>}
 
-      <section className="panel">
-        <h2>Inscriptions par ronde</h2>
-        <div className="list">
-          {entries.map((e) => {
-            const r = rounds.find((x) => x.id === e.round_id);
-            if (!r) return null;
-            return (
-              <div className="line" key={e.round_id}>
-                <div><div className="t">Ronde {r.number}</div><div className="s">Début {fmtDate(r.start_date)} · {e.lives} vie(s)</div></div>
-                <div style={{ textAlign: 'right' }}><div className="mono">{Number(r.fee).toFixed(2)} $</div><span className={'badge ' + (e.paid ? 'ok' : 'wait')}>{e.paid ? 'Payée' : 'En attente'}</span></div>
-              </div>
-            );
-          })}
-          {entries.length === 0 && <div className="fine">Aucune inscription. Va dans Prédiction pour t’inscrire à une ronde.</div>}
-        </div>
-        <div className="line"><b>Total payé</b><b className="mono">{paidTotal.toFixed(2)} $</b></div>
-        <p className="fine">Paiement par virement Interac à {INTERAC_EMAIL}.</p>
-      </section>
+      {p.is_admin && <div className="msg info">Ce compte gère le pool et ne participe à aucune ronde.</div>}
 
-      <section className="panel">
-        <h2>Surnom</h2>
-        <form className="stack" onSubmit={saveNick}>
-          <input className="field" value={nick} maxLength={24} disabled={left === 0} onChange={(e) => setNick(e.target.value)} />
-          <div className="fine">{left > 0 ? `${left} changement(s) restant(s).` : 'Limite de 2 changements atteinte.'}</div>
-          <button className="btn secondary" type="submit" disabled={left === 0}>Enregistrer le surnom</button>
-        </form>
-      </section>
+      {!p.is_admin && (
+        <section className="panel">
+          <h2>Inscriptions par ronde</h2>
+          <div className="list">
+            {entries.map((e) => {
+              const r = rounds.find((x) => x.id === e.round_id);
+              if (!r) return null;
+              return (
+                <div className="line" key={e.round_id}>
+                  <div><div className="t">Ronde {r.number}</div><div className="s">Début {fmtDate(r.start_date)} · {e.lives} vie(s)</div></div>
+                  <div style={{ textAlign: 'right' }}><div className="mono">{Number(r.fee).toFixed(2)} $</div><span className={'badge ' + (e.paid ? 'ok' : 'wait')}>{e.paid ? 'Payée' : 'En attente'}</span></div>
+                </div>
+              );
+            })}
+            {entries.length === 0 && <div className="fine">Aucune inscription. Va dans Prédiction pour t’inscrire à une ronde.</div>}
+          </div>
+          <div className="line"><b>Total payé</b><b className="mono">{paidTotal.toFixed(2)} $</b></div>
+          <p className="fine">Paiement par virement Interac à {INTERAC_EMAIL}.</p>
+        </section>
+      )}
+
+      {!p.is_admin && (
+        <section className="panel">
+          <h2>Surnom</h2>
+          <form className="stack" onSubmit={saveNick}>
+            <input className="field" value={nick} maxLength={24} disabled={left === 0} onChange={(e) => setNick(e.target.value)} />
+            <div className="fine">{left > 0 ? `${left} changement(s) restant(s).` : 'Limite de 2 changements atteinte.'}</div>
+            <button className="btn secondary" type="submit" disabled={left === 0}>Enregistrer le surnom</button>
+          </form>
+        </section>
+      )}
 
       <section className="panel">
         <h2>Mot de passe</h2>
@@ -86,11 +93,13 @@ function Profile({ ctx }) {
         </form>
       </section>
 
-      <section className="panel">
-        <h2>Règlements</h2>
-        <p className="fine">Version {RULES_VERSION} acceptée le {fmtDateTime(ctx.acceptance && ctx.acceptance.accepted_at)}.</p>
-        <Link href="/reglements">Relire les règlements</Link>
-      </section>
+      {!p.is_admin && (
+        <section className="panel">
+          <h2>Règlements</h2>
+          <p className="fine">Version {RULES_VERSION} acceptée le {fmtDateTime(ctx.acceptance && ctx.acceptance.accepted_at)}.</p>
+          <Link href="/reglements">Relire les règlements</Link>
+        </section>
+      )}
     </main>
   );
 }
