@@ -49,7 +49,10 @@ export default function Participants() {
               <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                 <div>
                   <div className="t">{who} <span className="fine">· {p.first_name} {p.last_name}</span></div>
-                  <div className="s">{p.email} · inscrit {fmtDateTime(p.created_at)} · règlements {p.rules_version || 'non acceptés'}</div>
+                  <div className="s">
+                    <a href={`mailto:${p.email}`} title={`Écrire à ${who}`}>{p.email}</a>
+                    {' '}· inscrit {fmtDateTime(p.created_at)} · règlements {p.rules_version || 'non acceptés'}
+                  </div>
                 </div>
               </div>
               <div className="row" style={{ gap: 6, justifyContent: 'flex-start' }}>
