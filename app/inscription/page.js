@@ -37,7 +37,8 @@ export default function Inscription() {
   if (sent) {
     return (
       <main className="auth">
-        <div className="brand">Presque!<small>Confirme ton courriel</small></div>
+        <img className="logo-small" src="/logo.png" alt="Survivor Pool Hockey" width="110" height="124" />
+        <h1 style={{ textAlign: 'center' }}>Presque!</h1>
         <p className="lead">Un lien de confirmation vient d’être envoyé à <b>{f.email}</b>. Clique dessus, puis connecte-toi.</p>
         <Link className="btn" href="/connexion" style={{ textAlign: 'center', textDecoration: 'none' }}>Aller à la connexion</Link>
       </main>
@@ -46,7 +47,8 @@ export default function Inscription() {
 
   return (
     <main className="auth">
-      <div className="brand">Inscription<small>Pool Hockey 2026-27</small></div>
+      <img className="logo-small" src="/logo.png" alt="Survivor Pool Hockey" width="110" height="124" />
+      <h1 style={{ textAlign: 'center' }}>Inscription</h1>
       <p className="lead">{ENTRY_FEE} $ par ronde, par virement Interac à {MANAGER_NAME} ({INTERAC_EMAIL}).</p>
       <form className="stack" onSubmit={submit}>
         <div className="row">

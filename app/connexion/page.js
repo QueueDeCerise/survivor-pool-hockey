@@ -26,7 +26,8 @@ export default function Connexion() {
 
   return (
     <main className="auth">
-      <div className="brand">Survivor<small>Pool Hockey 2026-27</small></div>
+      <img className="logo-hero" src="/logo.png" alt="Survivor Pool Hockey" width="230" height="260" />
+      <div className="season">Saison 2026-27</div>
       <p className="lead">Un joueur par jour. Survis ou disparais.</p>
       <form className="stack" onSubmit={submit}>
         <label className="lbl">Adresse courriel

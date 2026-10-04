@@ -45,9 +45,12 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
   return (
     <div className="shell">
       <header className="top">
-        <div>
-          <div className="who">{displayName(ctx.profile)}</div>
-          <div className="sub">{ctx.profile.is_admin ? 'Gestionnaire du pool' : 'Survivor Pool Hockey'}</div>
+        <div className="id">
+          <img className="crest" src="/logo.png" alt="" width="38" height="43" />
+          <div>
+            <div className="who">{displayName(ctx.profile)}</div>
+            <div className="sub">{ctx.profile.is_admin ? 'Gestionnaire du pool' : 'Survivor Pool Hockey'}</div>
+          </div>
         </div>
         <button className="btn secondary small" onClick={() => supabase.auth.signOut()}>Quitter</button>
       </header>

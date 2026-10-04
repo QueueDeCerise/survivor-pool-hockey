@@ -1,13 +1,10 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import Lives from '@/components/Lives';
 import { supabase, fetchAll, frError } from '@/lib/supabase';
 import { ENTRY_FEE, INTERAC_EMAIL, MESSENGER_URL } from '@/lib/config';
 import { todayLocal, addDays, fmtDate, fmtShort, fmtTime, lateLimit } from '@/lib/time';
-
-function Lives({ n }) {
-  return <span className="lives" aria-label={`${n} vie(s)`}>{[0, 1, 2].map((i) => <i key={i} className={'life' + (i >= n ? ' off' : '')} />)}</span>;
-}
 
 function Predictions({ ctx }) {
   const uid = ctx.user.id;
@@ -41,17 +38,17 @@ function Predictions({ ctx }) {
     setPlayers(p || []);
     setPicks(k.data || []);
     const active = (e.data || []).filter((x) => (r.data || []).find((y) => y.id === x.round_id && y.status !== 'terminee'));
-    setRoundId((cur) => cur ?? (active[0] && active[0].round_id) ?? null);
-    setDate((cur) => cur ?? ((d.data || [])[0] && d.data[0].game_date) ?? null);
+    setRoundId((cur) => cur ?? (active[0] ? active[0].round_id : null));
+    setDate((cur) => cur ?? ((d.data || [])[0] ? d.data[0].game_date : null));
     setLoading(false);
   }
 
   useEffect(() => { loadAll(); const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []); // eslint-disable-line
 
   const day = days.find((d) => d.game_date === date);
-  const started = day && now >= new Date(day.first_game_at).getTime();
+  const started = !!day && now >= new Date(day.first_game_at).getTime();
   const lateEnd = day && lateLimit(day.first_game_at);
-  const closed = day && now >= new Date(lateEnd).getTime();
+  const closed = !!day && now >= new Date(lateEnd).getTime();
 
   useEffect(() => {
     setChosen(null); setMsg(null);
@@ -149,11 +146,11 @@ function Predictions({ ctx }) {
               <div className="eyebrow">Ronde {round && round.number} · début {round && fmtDate(round.start_date)}</div>
               <h1>{date ? fmtDate(date) : 'Aucun match'}</h1>
             </div>
-            {entry && <div style={{ flex: 'none' }}><Lives n={entry.lives} /></div>}
+            {entry && <div style={{ flex: 'none' }}><Lives n={entry.lives} size={26} /></div>}
           </div>
 
           {entry && !entry.paid && <div className="msg warn">Paiement de {ENTRY_FEE} $ en attente de confirmation (Interac à {INTERAC_EMAIL}).</div>}
-          {entry && entry.lives <= 0 && <div className="msg err">Tu es éliminé de cette ronde.</div>}
+          {entry && entry.lives <= 0 && <div className="msg err">Tu es éliminé de cette ronde. PATINAPU!</div>}
 
           {roundDays.length === 0 ? (
             <div className="msg info">L’horaire des prochains matchs n’est pas encore publié.</div>

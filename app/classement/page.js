@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import Lives from '@/components/Lives';
 import { supabase } from '@/lib/supabase';
 import { todayLocal, fmtDate, fmtShort } from '@/lib/time';
 
@@ -60,9 +61,7 @@ function Standings() {
               {rows.map((r, i) => (
                 <div className="line" key={i}>
                   <span className="t">{r.display_name}{r.is_me && <span className="fine"> (toi)</span>}</span>
-                  {r.lives > 0
-                    ? <span className="lives">{[0, 1, 2].map((k) => <i key={k} className={'life' + (k >= r.lives ? ' off' : '')} />)}</span>
-                    : <span className="badge bad">PATINAPU</span>}
+                  {r.lives > 0 ? <Lives n={r.lives} /> : <span className="badge bad">PATINAPU</span>}
                 </div>
               ))}
               {rows.length === 0 && <div className="fine">Aucun participant inscrit.</div>}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 900" preserveAspectRatio="xMidYMid slice">
+  <g fill="none" stroke-width="6">
+    <line x1="-20" y1="250" x2="420" y2="250" stroke="#d6dcef"/>
+    <line x1="-20" y1="650" x2="420" y2="650" stroke="#d6dcef"/>
+    <line x1="-20" y1="450" x2="420" y2="450" stroke="#f0d6d4" stroke-width="8"/>
+    <circle cx="200" cy="450" r="110" stroke="#dfe5f3" stroke-width="4"/>
+    <circle cx="80" cy="120" r="80" stroke="#f3dedc" stroke-width="4"/>
+    <circle cx="320" cy="780" r="80" stroke="#f3dedc" stroke-width="4"/>
+  </g>
+  <g fill="#f0d6d4">
+    <circle cx="200" cy="450" r="9"/>
+    <circle cx="80" cy="120" r="10"/>
+    <circle cx="320" cy="780" r="10"/>
+    <circle cx="90" cy="340" r="9"/>
+    <circle cx="310" cy="340" r="9"/>
+    <circle cx="90" cy="560" r="9"/>
+    <circle cx="310" cy="560" r="9"/>
+  </g>
+</svg>
