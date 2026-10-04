@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase, frError } from '@/lib/supabase';
-import { fmtDate } from '@/lib/time';
+import { fmtDate, fmtDateTime } from '@/lib/time';
 import { ENTRY_FEE } from '@/lib/config';
 
 export default function Rounds() {
   const [rounds, setRounds] = useState([]);
   const [counts, setCounts] = useState({});
+  const [closes, setCloses] = useState({});
   const [form, setForm] = useState({ number: '', start_date: '' });
   const [msg, setMsg] = useState(null);
 
@@ -20,6 +21,12 @@ export default function Rounds() {
     (e || []).forEach((x) => { c[x.round_id] = c[x.round_id] || { n: 0, alive: 0, paid: 0 }; c[x.round_id].n++; if (x.lives > 0) c[x.round_id].alive++; if (x.paid) c[x.round_id].paid++; });
     setCounts(c);
     setForm((f) => ({ ...f, number: String(((r || [])[0]?.number || 0) + 1) }));
+    const cl = {};
+    await Promise.all((r || []).map(async (x) => {
+      const { data } = await supabase.rpc('round_registration_closes_at', { p_round: x.id });
+      cl[x.id] = data || null;
+    }));
+    setCloses(cl);
   }
   useEffect(() => { load(); }, []);
 
@@ -27,7 +34,7 @@ export default function Rounds() {
     e.preventDefault();
     const { error } = await supabase.from('rounds').insert({ number: Number(form.number), start_date: form.start_date, fee: ENTRY_FEE });
     if (error) return setMsg({ t: 'err', m: frError(error) });
-    setMsg({ t: 'ok', m: `Ronde ${form.number} créée. Les inscriptions sont ouvertes.` });
+    setMsg({ t: 'ok', m: `Ronde ${form.number} créée. Les inscriptions sont ouvertes jusqu’au premier match.` });
     load();
   }
   async function setStatus(r, status) {
@@ -35,6 +42,8 @@ export default function Rounds() {
     if (error) return setMsg({ t: 'err', m: frError(error) });
     load();
   }
+
+  const now = Date.now();
 
   return (
     <>
@@ -45,7 +54,7 @@ export default function Rounds() {
           <label className="lbl">Date de début<input className="field" type="date" required value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></label>
           <button className="btn" type="submit" style={{ alignSelf: 'flex-end' }}>Créer</button>
         </form>
-        <p className="fine">Les rondes peuvent se chevaucher. Passe une ronde « En cours » quand elle démarre (ferme les inscriptions).</p>
+        <p className="fine">Les rondes peuvent se chevaucher. Les inscriptions ferment automatiquement au début du premier match de la ronde.</p>
         {msg && <div className={'msg ' + msg.t}>{msg.m}</div>}
       </section>
       <section className="panel">
@@ -53,11 +62,19 @@ export default function Rounds() {
         <div className="list">
           {rounds.map((r) => {
             const c = counts[r.id] || { n: 0, alive: 0, paid: 0 };
+            const close = closes[r.id];
+            const closed = close && now >= new Date(close).getTime();
             return (
               <div className="line" key={r.id}>
                 <div>
                   <div className="t">Ronde {r.number}</div>
                   <div className="s">Début {fmtDate(r.start_date)} · {c.n} inscrits · {c.paid} payés · {c.alive} en vie · cagnotte {c.paid * Number(r.fee)} $</div>
+                  <div className="s">
+                    {!close ? 'Importe l’horaire pour fixer la fermeture des inscriptions.'
+                      : closed ? `Inscriptions fermées depuis ${fmtDateTime(close)}`
+                      : `Inscriptions jusqu’au ${fmtDateTime(close)}`}
+                  </div>
+                  {closed && r.status === 'inscriptions' && <div className="msg warn" style={{ marginTop: 6 }}>Le premier match est commencé: passe cette ronde « En cours ».</div>}
                   {r.status === 'en_cours' && c.alive === 1 && <div className="msg ok" style={{ marginTop: 6 }}>Un seul survivant: tu peux terminer la ronde.</div>}
                 </div>
                 <select className="field" style={{ width: 150, flex: 'none' }} value={r.status} onChange={(e) => setStatus(r, e.target.value)}>

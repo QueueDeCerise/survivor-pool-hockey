@@ -4,7 +4,7 @@ import AppShell from '@/components/AppShell';
 import Lives from '@/components/Lives';
 import { supabase, fetchAll, frError } from '@/lib/supabase';
 import { ENTRY_FEE, INTERAC_EMAIL, MESSENGER_URL } from '@/lib/config';
-import { todayLocal, addDays, fmtDate, fmtShort, fmtTime, lateLimit } from '@/lib/time';
+import { todayLocal, addDays, fmtDate, fmtShort, fmtTime, fmtDateTime, lateLimit } from '@/lib/time';
 
 function Predictions({ ctx }) {
   const uid = ctx.user.id;
@@ -22,6 +22,7 @@ function Predictions({ ctx }) {
   const [msg, setMsg] = useState(null);
   const [now, setNow] = useState(Date.now());
   const [proposal, setProposal] = useState(null);
+  const [closes, setCloses] = useState({});
 
   async function loadAll() {
     const today = todayLocal();
@@ -33,6 +34,12 @@ function Predictions({ ctx }) {
       supabase.from('picks').select('*').eq('user_id', uid),
     ]);
     setRounds(r.data || []);
+    const cl = {};
+    await Promise.all((r.data || []).filter((x) => x.status === 'inscriptions').map(async (x) => {
+      const { data } = await supabase.rpc('round_registration_closes_at', { p_round: x.id });
+      cl[x.id] = data || null;
+    }));
+    setCloses(cl);
     setEntries(e.data || []);
     setDays(d.data || []);
     setPlayers(p || []);
@@ -61,7 +68,7 @@ function Predictions({ ctx }) {
   const round = rounds.find((r) => r.id === roundId);
   const entry = entries.find((e) => e.round_id === roundId);
   const myActive = entries.filter((e) => rounds.find((r) => r.id === e.round_id && r.status !== 'terminee'));
-  const openRounds = rounds.filter((r) => r.status === 'inscriptions' && !entries.find((e) => e.round_id === r.id));
+  const openRounds = rounds.filter((r) => r.status === 'inscriptions' && !entries.find((e) => e.round_id === r.id) && !(closes[r.id] && now >= new Date(closes[r.id]).getTime()));
   const roundDays = days.filter((d) => round && d.game_date >= round.start_date);
   const current = picks.find((p) => p.round_id === roundId && p.game_date === date);
   const currentPlayer = current && players.find((p) => p.id === current.player_id);
@@ -116,7 +123,7 @@ function Predictions({ ctx }) {
           <div className="list">
             {openRounds.map((r) => (
               <div className="line" key={r.id}>
-                <div><div className="t">Ronde {r.number}</div><div className="s">Début {fmtDate(r.start_date)} · {Number(r.fee)} $</div></div>
+                <div><div className="t">Ronde {r.number}</div><div className="s">Début {fmtDate(r.start_date)} · {Number(r.fee)} $</div>{closes[r.id] && <div className="s">Inscriptions jusqu’au {fmtDateTime(closes[r.id])}</div>}</div>
                 <button className="btn small" onClick={() => join(r)}>M’inscrire</button>
               </div>
             ))}
