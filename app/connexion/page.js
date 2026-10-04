@@ -26,9 +26,9 @@ export default function Connexion() {
 
   return (
     <main className="auth">
+      <p className="tagline">Un joueur par jour.<br /><span>Survis ou disparais.</span></p>
       <img className="logo-hero" src="/logo.png" alt="Survivor Pool Hockey" width="230" height="260" />
       <div className="season">Saison 2026-27</div>
-      <p className="lead">Un joueur par jour. Survis ou disparais.</p>
       <form className="stack" onSubmit={submit}>
         <label className="lbl">Adresse courriel
           <input className="field" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
