@@ -68,7 +68,7 @@ function Standings() {
             </div>
           </section>
           <section className="panel stack">
-            <h2>Révélation des choix</h2>
+            <h2>Prédictions des participants</h2>
             {days.length > 0 && (
               <div className="chips">
                 {days.map((d) => <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on' : '')} onClick={() => setDate(d.game_date)}>{fmtShort(d.game_date)}</button>)}
