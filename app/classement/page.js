@@ -75,7 +75,7 @@ function Standings() {
               </div>
             )}
             {!reveal || reveal.length === 0 ? (
-              <div className="msg info">Les choix sont privés en ce moment. Ils apparaissent 30 minutes après le début du premier match, jusqu’à 90 minutes après la fin du dernier.</div>
+              <div className="msg info">Les choix sont privés en ce moment. Ils apparaissent 30 minutes après le début du premier match, jusqu’à 60 minutes après la fermeture de la journée.</div>
             ) : (
               <div className="list">
                 {reveal.map((r, i) => (

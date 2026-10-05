@@ -7,7 +7,7 @@ export default function Points() {
   const [days, setDays] = useState([]);
   const [date, setDate] = useState(null);
   const [players, setPlayers] = useState([]);
-  const [rows, setRows] = useState([]); // { player_id, goals, assists, source }
+  const [rows, setRows] = useState([]);
   const [games, setGames] = useState(null);
   const [unmatched, setUnmatched] = useState([]);
   const [search, setSearch] = useState('');
@@ -16,21 +16,27 @@ export default function Points() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('game_days').select('game_date').lte('game_date', todayLocal()).gte('game_date', addDays(todayLocal(), -30)).order('game_date', { ascending: false });
+      const { data } = await supabase.from('game_days').select('game_date, closed_at').lte('game_date', todayLocal()).gte('game_date', addDays(todayLocal(), -30)).order('game_date', { ascending: false });
       setDays(data || []);
       if (data && data[0]) setDate(data[0].game_date);
       setPlayers(await fetchAll(() => supabase.from('players').select('id, nhl_id, full_name, position').eq('approved', true).eq('is_default', false)));
     })();
   }, []);
 
+  async function loadRows(d) {
+    const { data } = await supabase.from('point_events').select('*').eq('game_date', d);
+    setRows(data || []);
+  }
+
   useEffect(() => {
     if (!date) return;
     setGames(null); setUnmatched([]); setMsg(null);
-    supabase.from('point_events').select('*').eq('game_date', date).then(({ data }) => setRows(data || []));
+    loadRows(date);
   }, [date]);
 
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const byNhl = useMemo(() => new Map(players.filter((p) => p.nhl_id).map((p) => [p.nhl_id, p])), [players]);
+  const day = days.find((d) => d.game_date === date);
 
   async function importNhl() {
     setBusy(true); setMsg(null);
@@ -44,6 +50,8 @@ export default function Points() {
       for (const p of json.points) {
         const pl = byNhl.get(p.nhl_id);
         if (!pl) { miss.push(p); continue; }
+        const cur = next.get(pl.id);
+        if (cur && cur.source === 'manuel') continue; // la correction manuelle a priorité
         next.set(pl.id, { player_id: pl.id, game_date: date, goals: p.goals, assists: p.assists, source: 'nhl' });
       }
       setRows([...next.values()]);
@@ -55,25 +63,20 @@ export default function Points() {
   const edit = (id, key, val) => setRows((rs) => rs.map((r) => (r.player_id === id ? { ...r, [key]: Math.max(0, Number(val) || 0), source: 'manuel' } : r)));
   const addPlayer = (p) => { if (!rows.find((r) => r.player_id === p.id)) setRows([...rows, { player_id: p.id, game_date: date, goals: 0, assists: 0, source: 'manuel' }]); setSearch(''); };
 
-  async function save() {
-    setBusy(true);
-    const payload = rows.map((r) => ({ player_id: r.player_id, game_date: date, goals: r.goals, assists: r.assists, source: r.source || 'manuel', updated_at: new Date().toISOString() }));
-    const { error } = payload.length ? await supabase.from('point_events').upsert(payload, { onConflict: 'player_id,game_date' }) : { error: null };
-    setBusy(false);
-    if (error) return setMsg({ t: 'err', m: frError(error) });
-    setMsg({ t: 'ok', m: `${payload.length} ligne(s) de points enregistrée(s).` });
-  }
-
-  async function score() {
+  async function saveAndScore() {
     setBusy(true); setMsg(null);
-    const { data: rounds } = await supabase.from('rounds').select('*').eq('status', 'en_cours').lte('start_date', date);
-    const out = [];
-    for (const r of rounds || []) {
-      const { data, error } = await supabase.rpc('score_day', { p_round: r.id, p_date: date });
-      out.push(error ? `Ronde ${r.number}: ${frError(error)}` : `Ronde ${r.number}: ${data} participant(s) évalué(s)`);
-    }
-    setBusy(false);
-    setMsg({ t: 'ok', m: out.length ? out.join(' · ') : 'Aucune ronde en cours pour cette date.' });
+    try {
+      const payload = rows.map((r) => ({ player_id: r.player_id, game_date: date, goals: r.goals, assists: r.assists, source: r.source || 'manuel', updated_at: new Date().toISOString() }));
+      if (payload.length) {
+        const { error } = await supabase.from('point_events').upsert(payload, { onConflict: 'player_id,game_date' });
+        if (error) throw error;
+      }
+      const { data, error } = await supabase.rpc('close_day', { p_date: date });
+      if (error) throw error;
+      setMsg({ t: 'ok', m: `${payload.length} ligne(s) de points enregistrée(s). Classement recalculé pour ${data || 0} ronde(s).` });
+      setDays((ds) => ds.map((d) => (d.game_date === date && !d.closed_at ? { ...d, closed_at: new Date().toISOString() } : d)));
+      loadRows(date);
+    } catch (e) { setMsg({ t: 'err', m: frError(e) }); } finally { setBusy(false); }
   }
 
   const found = search.trim().length > 1 ? players.filter((p) => p.full_name.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 8) : [];
@@ -82,15 +85,14 @@ export default function Points() {
   return (
     <section className="panel stack">
       <h2>Points admissibles</h2>
-      <div className="chips">{days.map((d) => <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on' : '')} onClick={() => setDate(d.game_date)}>{fmtShort(d.game_date)}</button>)}</div>
+      <div className="chips">{days.map((d) => <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on' : '') + (d.closed_at ? ' has' : '')} onClick={() => setDate(d.game_date)}>{fmtShort(d.game_date)}<small>{d.closed_at ? 'fermée' : 'ouverte'}</small></button>)}</div>
       {!date ? <div className="fine">Aucune journée passée. Importe l’horaire d’abord.</div> : (
         <>
+          <p className="fine">Les points sont calculés automatiquement à la fermeture de la journée. Utilise cette page seulement pour corriger: une correction manuelle n’est jamais écrasée par la NHL. Buts et passes en temps réglementaire et prolongation seulement, fusillade exclue.</p>
           <div className="row">
-            <button className="btn secondary" disabled={busy} onClick={importNhl}>Importer depuis la NHL</button>
-            <button className="btn secondary" disabled={busy} onClick={save}>Enregistrer les points</button>
-            <button className="btn" disabled={busy} onClick={score}>Calculer les vies</button>
+            <button className="btn secondary" disabled={busy} onClick={importNhl}>Réimporter depuis la NHL</button>
+            <button className="btn" disabled={busy} onClick={saveAndScore}>{day && day.closed_at ? 'Enregistrer et recalculer' : 'Enregistrer et fermer la journée'}</button>
           </div>
-          <p className="fine">Buts et passes en temps réglementaire et prolongation seulement; la fusillade est exclue automatiquement. Enregistre avant de calculer. Le calcul peut être relancé après une correction.</p>
           {msg && <div className={'msg ' + msg.t}>{msg.m}</div>}
           {games && <div className="fine">{games.games.map((g) => `${g.away} ${g.score} ${g.home} (${g.state})`).join(' · ')}</div>}
           {unmatched.length > 0 && <div className="msg warn">Non trouvés dans la liste: {unmatched.map((u) => `${u.name} (${u.goals}B ${u.assists}P)`).join(', ')}. Mets à jour la liste des joueurs puis réimporte.</div>}
@@ -107,7 +109,7 @@ export default function Points() {
                     <td>{byId.get(r.player_id)?.full_name || r.player_id}</td>
                     <td><input className="num" type="number" min="0" value={r.goals} onChange={(e) => edit(r.player_id, 'goals', e.target.value)} /></td>
                     <td><input className="num" type="number" min="0" value={r.assists} onChange={(e) => edit(r.player_id, 'assists', e.target.value)} /></td>
-                    <td><span className="badge">{r.source}</span></td>
+                    <td><span className={'badge' + (r.source === 'manuel' ? ' wait' : '')}>{r.source}</span></td>
                   </tr>
                 ))}
                 {sorted.length === 0 && <tr><td colSpan="4" className="fine">Aucun point pour cette journée.</td></tr>}
