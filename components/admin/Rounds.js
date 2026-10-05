@@ -54,7 +54,7 @@ export default function Rounds() {
           <label className="lbl">Date de début<input className="field" type="date" required value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></label>
           <button className="btn" type="submit" style={{ alignSelf: 'flex-end' }}>Créer</button>
         </form>
-        <p className="fine">Les rondes peuvent se chevaucher. Les inscriptions ferment automatiquement au début du premier match de la ronde.</p>
+        <p className="fine">Les rondes peuvent se chevaucher. Au début du premier match, les inscriptions ferment et la ronde passe « En cours » automatiquement.</p>
         {msg && <div className={'msg ' + msg.t}>{msg.m}</div>}
       </section>
       <section className="panel">
@@ -74,7 +74,7 @@ export default function Rounds() {
                       : closed ? `Inscriptions fermées depuis ${fmtDateTime(close)}`
                       : `Inscriptions jusqu’au ${fmtDateTime(close)}`}
                   </div>
-                  {closed && r.status === 'inscriptions' && <div className="msg warn" style={{ marginTop: 6 }}>Le premier match est commencé: passe cette ronde « En cours ».</div>}
+                  {closed && r.status === 'inscriptions' && <div className="msg info" style={{ marginTop: 6 }}>Passage automatique à « En cours » dans la prochaine minute.</div>}
                   {r.status === 'en_cours' && c.alive === 1 && <div className="msg ok" style={{ marginTop: 6 }}>Un seul survivant: tu peux terminer la ronde.</div>}
                 </div>
                 <select className="field" style={{ width: 150, flex: 'none' }} value={r.status} onChange={(e) => setStatus(r, e.target.value)}>
