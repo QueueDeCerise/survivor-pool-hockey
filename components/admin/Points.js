@@ -16,9 +16,11 @@ export default function Points() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('game_days').select('game_date, closed_at').lte('game_date', todayLocal()).gte('game_date', addDays(todayLocal(), -30)).order('game_date', { ascending: false });
-      setDays(data || []);
-      if (data && data[0]) setDate(data[0].game_date);
+      const { data } = await supabase.from('game_days').select('game_date, first_game_at, closed_at').lte('game_date', todayLocal()).gte('game_date', addDays(todayLocal(), -30)).order('game_date', { ascending: false });
+      // seulement les journées commencées depuis au moins 30 minutes
+      const ready = (data || []).filter((d) => Date.now() >= new Date(d.first_game_at).getTime() + 30 * 60000);
+      setDays(ready);
+      if (ready[0]) setDate(ready[0].game_date);
       setPlayers(await fetchAll(() => supabase.from('players').select('id, nhl_id, full_name, position').eq('approved', true).eq('is_default', false)));
     })();
   }, []);
@@ -64,6 +66,7 @@ export default function Points() {
   const addPlayer = (p) => { if (!rows.find((r) => r.player_id === p.id)) setRows([...rows, { player_id: p.id, game_date: date, goals: 0, assists: 0, source: 'manuel' }]); setSearch(''); };
 
   async function saveAndScore() {
+    if (day && !day.closed_at && !confirm('Fermer cette journée? Assure-toi que tous les matchs sont terminés: le classement sera recalculé.')) return;
     setBusy(true); setMsg(null);
     try {
       const payload = rows.map((r) => ({ player_id: r.player_id, game_date: date, goals: r.goals, assists: r.assists, source: r.source || 'manuel', updated_at: new Date().toISOString() }));
@@ -86,7 +89,7 @@ export default function Points() {
     <section className="panel stack">
       <h2>Points admissibles</h2>
       <div className="chips">{days.map((d) => <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on' : '') + (d.closed_at ? ' has' : '')} onClick={() => setDate(d.game_date)}>{fmtShort(d.game_date)}<small>{d.closed_at ? 'fermée' : 'ouverte'}</small></button>)}</div>
-      {!date ? <div className="fine">Aucune journée passée. Importe l’horaire d’abord.</div> : (
+      {!date ? <div className="fine">Aucune journée commencée pour l’instant.</div> : (
         <>
           <p className="fine">Les points sont calculés automatiquement à la fermeture de la journée. Utilise cette page seulement pour corriger: une correction manuelle n’est jamais écrasée par la NHL. Buts et passes en temps réglementaire et prolongation seulement, fusillade exclue.</p>
           <div className="row">
