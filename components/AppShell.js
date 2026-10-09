@@ -5,11 +5,13 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { RULES_VERSION } from '@/lib/config';
 import { displayName } from '@/lib/time';
+import Champion from '@/components/Champion';
 
 export default function AppShell({ children, requireAdmin = false, allowWithoutRules = false }) {
   const router = useRouter();
   const pathname = usePathname();
   const [ctx, setCtx] = useState(null);
+  const [champion, setChampion] = useState(null);
 
   async function load() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -25,6 +27,11 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     if (!acc && !allowWithoutRules && !profile.is_admin) { router.replace('/reglements'); return; }
     if (requireAdmin && !profile.is_admin) { router.replace('/predictions'); return; }
     setCtx({ user: session.user, profile, acceptance: acc, reload: load });
+
+    // Champion récent (7 derniers jours), affiché sur la page d'accueil
+    const { data: champs } = await supabase.rpc('round_champions');
+    const recent = (champs || []).find((c) => c.finished_at && Date.now() - new Date(c.finished_at).getTime() < 7 * 86400000);
+    setChampion(recent || null);
   }
 
   useEffect(() => {
@@ -42,6 +49,8 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     ? [['/admin', 'Gestion'], ['/classement', 'Classement'], ['/profil', 'Profil']]
     : [['/predictions', 'Prédiction'], ['/classement', 'Classement'], ['/profil', 'Profil']];
 
+  const showChampion = champion && (pathname.startsWith('/predictions') || pathname.startsWith('/admin'));
+
   return (
     <div className="shell">
       <header className="top">
@@ -54,6 +63,11 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
         </div>
         <button className="btn secondary small" onClick={() => supabase.auth.signOut()}>Quitter</button>
       </header>
+      {showChampion && (
+        <div style={{ padding: '18px 18px 0' }}>
+          <Champion compact name={champion.display_name} round={champion.round_number} pot={champion.pot} />
+        </div>
+      )}
       {typeof children === 'function' ? children(ctx) : children}
       {(ctx.acceptance || ctx.profile.is_admin) && (
         <nav className="nav">

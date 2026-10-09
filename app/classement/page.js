@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import Lives from '@/components/Lives';
+import Champion from '@/components/Champion';
 import { supabase } from '@/lib/supabase';
 import { todayLocal, fmtDate, fmtShort } from '@/lib/time';
 
@@ -15,6 +16,7 @@ function Standings() {
   const [days, setDays] = useState([]);
   const [date, setDate] = useState(null);
   const [reveal, setReveal] = useState(null);
+  const [champs, setChamps] = useState([]);
 
   useEffect(() => {
     supabase.from('rounds').select('*').order('number', { ascending: false }).then(({ data }) => {
@@ -22,9 +24,11 @@ function Standings() {
       const active = (data || []).find((r) => r.status === 'en_cours') || (data || [])[0];
       if (active) setRoundId(active.id);
     });
+    supabase.rpc('round_champions').then(({ data }) => setChamps(data || []));
   }, []);
 
   const round = rounds.find((r) => r.id === roundId);
+  const champ = champs.find((c) => c.round_id === roundId);
 
   useEffect(() => {
     if (!round) return;
@@ -50,20 +54,27 @@ function Standings() {
       )}
       {!round ? <div className="msg info">Aucune ronde pour l’instant.</div> : (
         <>
-          <div>
-            <div className="eyebrow">Ronde {round.number} · début {fmtDate(round.start_date)}</div>
-            <h1><span className="mono">{pot} $</span> dans la cagnotte</h1>
-            <div className="fine">{alive} survivant{alive > 1 ? 's' : ''} sur {rows.length}</div>
-          </div>
+          {champ ? (
+            <Champion name={champ.display_name} round={champ.round_number} pot={champ.pot} />
+          ) : (
+            <div>
+              <div className="eyebrow">Ronde {round.number} · début {fmtDate(round.start_date)}</div>
+              <h1><span className="mono">{pot} $</span> dans la cagnotte</h1>
+              <div className="fine">{alive} survivant{alive > 1 ? 's' : ''} sur {rows.length}</div>
+            </div>
+          )}
           <section className="panel">
             <h2>Classement</h2>
             <div className="list">
-              {rows.map((r, i) => (
-                <div className="line" key={i}>
-                  <span className="t">{r.display_name}{r.is_me && <span className="fine"> (toi)</span>}</span>
-                  {r.lives > 0 ? <Lives n={r.lives} /> : <span className="badge bad">PATINAPU</span>}
-                </div>
-              ))}
+              {rows.map((r, i) => {
+                const isChamp = champ && champ.display_name === r.display_name && r.lives > 0;
+                return (
+                  <div className="line" key={i}>
+                    <span className="t">{isChamp && '🏆 '}{r.display_name}{r.is_me && <span className="fine"> (toi)</span>}</span>
+                    {r.lives > 0 ? <Lives n={r.lives} /> : <span className="badge bad">PATINAPU</span>}
+                  </div>
+                );
+              })}
               {rows.length === 0 && <div className="fine">Aucun participant inscrit.</div>}
             </div>
           </section>
