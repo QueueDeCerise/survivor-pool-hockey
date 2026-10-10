@@ -7,6 +7,7 @@ import Schedule from '@/components/admin/Schedule';
 import Players from '@/components/admin/Players';
 import Points from '@/components/admin/Points';
 import Audit from '@/components/admin/Audit';
+import History from '@/components/admin/History';
 
 const TABS = [
   ['participants', 'Participants', Participants],
@@ -14,6 +15,7 @@ const TABS = [
   ['horaire', 'Horaire', Schedule],
   ['joueurs', 'Joueurs', Players],
   ['points', 'Points et vies', Points],
+  ['historique', 'Historique', History],
   ['journal', 'Journal', Audit],
 ];
 
