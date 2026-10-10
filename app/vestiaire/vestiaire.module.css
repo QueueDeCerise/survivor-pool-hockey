@@ -1,0 +1,22 @@
+.wrap { padding: 16px 18px 150px; display: grid; gap: 14px; }
+.rule { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--gold-soft); color: var(--gold); font-size: .88rem; line-height: 1.4; }
+.rule b { color: var(--ink); }
+.feed { display: grid; gap: 6px; }
+.day { justify-self: center; margin: 10px 0 4px; padding: 3px 12px; border-radius: 99px; background: var(--soft); color: var(--muted); font: 700 .72rem 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; }
+.row { display: flex; flex-direction: column; align-items: flex-start; max-width: 86%; animation: pop .35s cubic-bezier(.16, 1, .3, 1) both; }
+.mine { align-self: flex-end; align-items: flex-end; justify-self: end; }
+.meta { display: flex; align-items: center; gap: 6px; padding: 0 6px 2px; font-size: .78rem; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 700; }
+.staff { font: 700 .62rem 'JetBrains Mono', monospace; letter-spacing: .06em; padding: 2px 6px; border-radius: 5px; background: var(--red); color: var(--paper); text-transform: uppercase; }
+.bubble { position: relative; padding: 9px 13px; border-radius: 16px 16px 16px 4px; background: var(--paper); border: 1px solid var(--line); font-size: 1rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mine .bubble { border-radius: 16px 16px 4px 16px; background: var(--red); border-color: var(--red); color: var(--paper); }
+.del { border: 0; background: none; color: var(--muted); font-size: .8rem; padding: 0 2px; cursor: pointer; opacity: .7; }
+.del:hover { opacity: 1; color: var(--err); }
+.empty { padding: 36px 16px; text-align: center; color: var(--muted); }
+.empty b { display: block; font-size: 1.15rem; color: var(--ink); margin-bottom: 4px; }
+.composer { position: fixed; z-index: 9; left: 50%; transform: translateX(-50%); bottom: calc(46px + env(safe-area-inset-bottom)); width: 100%; max-width: 760px; display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px; background: var(--paper); border-top: 1px solid var(--line); }
+.input { flex: 1; min-height: 46px; max-height: 120px; resize: none; padding: 11px 13px; border: 2px solid var(--line); border-radius: 12px; background: var(--paper); font: inherit; line-height: 1.35; }
+.input:focus { outline: none; border-color: var(--red); }
+.count { position: absolute; right: 96px; bottom: 2px; font-size: .7rem; color: var(--muted); }
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .row { animation: none; } }
