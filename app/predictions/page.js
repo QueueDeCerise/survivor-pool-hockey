@@ -4,7 +4,7 @@ import AppShell from '@/components/AppShell';
 import Lives from '@/components/Lives';
 import { supabase, fetchAll, frError } from '@/lib/supabase';
 import { ENTRY_FEE, INTERAC_EMAIL, MESSENGER_URL } from '@/lib/config';
-import { todayLocal, addDays, fmtDate, fmtShort, fmtTime, fmtDateTime, lateLimit } from '@/lib/time';
+import { todayLocal, addDays, fmtDate, fmtShort, fmtTime, fmtDateTime } from '@/lib/time';
 
 function Predictions({ ctx }) {
   const uid = ctx.user.id;
@@ -14,7 +14,6 @@ function Predictions({ ctx }) {
   const [days, setDays] = useState([]);
   const [players, setPlayers] = useState([]);
   const [picks, setPicks] = useState([]);
-  const [scorers, setScorers] = useState(new Set());
   const [roundId, setRoundId] = useState(null);
   const [date, setDate] = useState(null);
   const [query, setQuery] = useState('');
@@ -52,18 +51,10 @@ function Predictions({ ctx }) {
 
   useEffect(() => { loadAll(); const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t); }, []); // eslint-disable-line
 
+  useEffect(() => { setChosen(null); setMsg(null); }, [date, roundId]);
+
   const day = days.find((d) => d.game_date === date);
   const started = !!day && now >= new Date(day.first_game_at).getTime();
-  const lateEnd = day && lateLimit(day.first_game_at);
-  const closed = !!day && now >= new Date(lateEnd).getTime();
-
-  useEffect(() => {
-    setChosen(null); setMsg(null);
-    if (!date || !started) { setScorers(new Set()); return; }
-    supabase.from('point_events').select('player_id, goals, assists').eq('game_date', date).then(({ data }) => {
-      setScorers(new Set((data || []).filter((x) => x.goals + x.assists > 0).map((x) => x.player_id)));
-    });
-  }, [date, roundId, started]);
 
   const round = rounds.find((r) => r.id === roundId);
   const entry = entries.find((e) => e.round_id === roundId);
@@ -72,7 +63,7 @@ function Predictions({ ctx }) {
   const roundDays = days.filter((d) => round && d.game_date >= round.start_date);
   const current = picks.find((p) => p.round_id === roundId && p.game_date === date);
   const currentPlayer = current && players.find((p) => p.id === current.player_id);
-  const canChange = day && entry && entry.lives > 0 && (current ? !started : !closed);
+  const canChange = day && entry && entry.lives > 0 && !started;
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -123,7 +114,11 @@ function Predictions({ ctx }) {
           <div className="list">
             {openRounds.map((r) => (
               <div className="line" key={r.id}>
-                <div><div className="t">Ronde {r.number}</div><div className="s">Début {fmtDate(r.start_date)} · {Number(r.fee)} $</div>{closes[r.id] && <div className="s">Inscriptions jusqu’au {fmtDateTime(closes[r.id])}</div>}</div>
+                <div>
+                  <div className="t">Ronde {r.number}</div>
+                  <div className="s">Début {fmtDate(r.start_date)} · {Number(r.fee)} $</div>
+                  {closes[r.id] && <div className="s">Inscriptions jusqu’au {fmtDateTime(closes[r.id])}</div>}
+                </div>
                 <button className="btn small" onClick={() => join(r)}>M’inscrire</button>
               </div>
             ))}
@@ -173,9 +168,10 @@ function Predictions({ ctx }) {
 
           {day && (
             <section className="panel stack">
-              <div className="msg warn">
-                <b>Heure limite: {fmtTime(day.first_game_at)}</b> (début du premier match) pour faire ou modifier ton choix.
-                {' '}Sans choix, dernière chance jusqu’à {fmtTime(lateEnd)}, sauf les joueurs qui ont déjà un point.
+              <div className={'msg ' + (started ? 'err' : 'warn')}>
+                {started
+                  ? <><b>Choix fermés</b> depuis le début du premier match ({fmtTime(day.first_game_at)}).</>
+                  : <><b>Heure limite: {fmtTime(day.first_game_at)}</b>, au début du premier match, pour faire ou modifier ton choix.</>}
               </div>
               <div className={'msg ' + (current ? 'ok' : 'info')}>
                 {current ? <>Ton choix privé: <b>{currentPlayer ? currentPlayer.full_name : '…'}</b></> : 'Aucun choix pour cette journée.'}
@@ -196,9 +192,8 @@ function Predictions({ ctx }) {
               <div className="players">
                 {list.map((p) => {
                   const pending = !p.approved;
-                  const scored = started && scorers.has(p.id);
                   return (
-                    <button key={p.id} className={'player' + (chosen && chosen.id === p.id ? ' sel' : '')} disabled={pending || scored} onClick={() => setChosen(p)}>
+                    <button key={p.id} className={'player' + (chosen && chosen.id === p.id ? ' sel' : '')} disabled={pending} onClick={() => setChosen(p)}>
                       <span>{p.full_name} {pending && <span className="badge wait">EN ATTENTE</span>}</span>
                       <span className="badge">{p.position || ''}</span>
                     </button>

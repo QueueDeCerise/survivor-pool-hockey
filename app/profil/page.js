@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import InstallApp from '@/components/InstallApp';
 import { supabase, frError } from '@/lib/supabase';
 import { INTERAC_EMAIL, RULES_VERSION } from '@/lib/config';
 import { fmtDate, fmtDateTime } from '@/lib/time';
@@ -52,6 +53,8 @@ function Profile({ ctx }) {
       {msg && <div className={'msg ' + msg.t}>{msg.m}</div>}
 
       {p.is_admin && <div className="msg info">Ce compte gère le pool et ne participe à aucune ronde.</div>}
+
+      <InstallApp />
 
       {!p.is_admin && (
         <section className="panel">
