@@ -23,7 +23,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
       supabase.from('rule_acceptances').select('version, accepted_at').eq('user_id', uid).eq('version', RULES_VERSION).maybeSingle(),
     ]);
     if (!profile) { await supabase.auth.signOut(); router.replace('/connexion'); return; }
-    // Le gestionnaire ne participe pas: pas de règlements à accepter, pas de prédictions
+    // Le commissaire ne participe pas: pas de règlements à accepter, pas de prédictions
     if (profile.is_admin && pathname.startsWith('/predictions')) { router.replace('/admin'); return; }
     if (!acc && !allowWithoutRules && !profile.is_admin) { router.replace('/reglements'); return; }
     if (requireAdmin && !profile.is_admin) { router.replace('/predictions'); return; }
@@ -82,7 +82,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
           <img className="crest" src="/logo.png" alt="" width="38" height="43" />
           <div>
             <div className="who">{displayName(ctx.profile)}</div>
-            <div className="sub">{ctx.profile.is_admin ? 'Gestionnaire du pool' : 'Survivor Pool Hockey'}</div>
+            <div className="sub">{ctx.profile.is_admin ? 'Commissaire du pool' : 'Survivor Pool Hockey'}</div>
           </div>
         </div>
         <button className="btn secondary small" onClick={() => supabase.auth.signOut()}>Quitter</button>

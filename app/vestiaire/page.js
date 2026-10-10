@@ -100,7 +100,7 @@ function Chat({ ctx }) {
                 <div className={s.row + (mine ? ' ' + s.mine : '')}>
                   <div className={s.meta}>
                     <b>{mine ? 'Moi' : a.display_name}</b>
-                    {a.is_admin && <span className={s.staff}>Gestionnaire</span>}
+                    {a.is_admin && <span className={s.staff}>Commissaire</span>}
                     <span>{fmtTime(m.created_at)}</span>
                     {(mine || isAdmin) && <button className={s.del} onClick={() => remove(m)} aria-label="Supprimer le message">✕</button>}
                   </div>

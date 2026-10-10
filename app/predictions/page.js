@@ -98,7 +98,7 @@ function Predictions({ ctx }) {
     const { error } = await supabase.from('players').insert({ full_name: proposal.name, position: proposal.pos, approved: false });
     if (error) return setMsg({ t: 'err', m: frError(error) });
     setProposal(null);
-    setMsg({ t: 'ok', m: 'Joueur proposé. Il sera sélectionnable après validation du gestionnaire.' });
+    setMsg({ t: 'ok', m: 'Joueur proposé. Il sera sélectionnable après validation du commissaire.' });
     loadAll();
   }
 
@@ -123,14 +123,14 @@ function Predictions({ ctx }) {
               </div>
             ))}
           </div>
-          <p className="fine">Paiement par virement Interac à {INTERAC_EMAIL}. Le gestionnaire confirme la réception.</p>
+          <p className="fine">Paiement par virement Interac à {INTERAC_EMAIL}. Le commissaire confirme la réception.</p>
         </section>
       )}
 
       {myActive.length === 0 ? (
         <section className="panel">
           <h2>Aucune ronde active</h2>
-          <p className="fine">{openRounds.length ? 'Inscris-toi à une ronde ci-dessus pour faire tes choix.' : 'Le gestionnaire n’a pas encore ouvert de ronde.'}</p>
+          <p className="fine">{openRounds.length ? 'Inscris-toi à une ronde ci-dessus pour faire tes choix.' : 'Le commissaire n’a pas encore ouvert de ronde.'}</p>
         </section>
       ) : (
         <>
@@ -220,7 +220,7 @@ function Predictions({ ctx }) {
           )}
 
           {current && (
-            <p className="fine">Ton choix est enregistré en privé dans l’application. Tu peux aussi <a href={MESSENGER_URL} target="_blank" rel="noreferrer">l’envoyer au gestionnaire par Messenger</a>.</p>
+            <p className="fine">Ton choix est enregistré en privé dans l’application. Tu peux aussi <a href={MESSENGER_URL} target="_blank" rel="noreferrer">l’envoyer au commissaire par Messenger</a>.</p>
           )}
         </>
       )}

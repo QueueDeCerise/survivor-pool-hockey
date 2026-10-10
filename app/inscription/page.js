@@ -49,7 +49,7 @@ export default function Inscription() {
     <main className="auth">
       <img className="logo-small" src="/logo.png" alt="Survivor Pool Hockey" width="110" height="124" />
       <h1 style={{ textAlign: 'center' }}>Inscription</h1>
-      <p className="lead">{ENTRY_FEE} $ par ronde, par virement Interac à {MANAGER_NAME} ({INTERAC_EMAIL}).</p>
+      <p className="lead">{ENTRY_FEE} $ par ronde, par virement Interac au commissaire, {MANAGER_NAME} ({INTERAC_EMAIL}).</p>
       <form className="stack" onSubmit={submit}>
         <div className="row">
           <label className="lbl">Prénom<input className="field" required autoComplete="given-name" value={f.first} onChange={set('first')} /></label>
@@ -58,7 +58,7 @@ export default function Inscription() {
         <label className="lbl">Surnom <span className="hint">facultatif, affiché au classement (2 changements max)</span>
           <input className="field" value={f.nick} onChange={set('nick')} maxLength={24} />
         </label>
-        <label className="lbl">Adresse courriel <span className="hint">privée, visible seulement par le gestionnaire</span>
+        <label className="lbl">Adresse courriel <span className="hint">privée, visible seulement par le commissaire</span>
           <input className="field" type="email" required autoComplete="email" value={f.email} onChange={set('email')} />
         </label>
         <label className="lbl">Mot de passe <span className="hint">8 caractères minimum</span>

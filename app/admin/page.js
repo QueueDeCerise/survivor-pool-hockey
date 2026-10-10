@@ -23,8 +23,8 @@ function Admin() {
   return (
     <main className="page">
       <div>
-        <div className="eyebrow">Gestionnaire</div>
-        <h1>Gestion du pool</h1>
+        <div className="eyebrow">Commissaire</div>
+        <h1>Bureau du commissaire</h1>
       </div>
       <div className="tabs chips">
         {TABS.map(([k, label]) => <button key={k} className={'chip' + (tab === k ? ' on' : '')} onClick={() => setTab(k)}>{label}</button>)}

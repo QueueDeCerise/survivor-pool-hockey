@@ -46,7 +46,7 @@ function Profile({ ctx }) {
   return (
     <main className="page">
       <div>
-        <div className="eyebrow">{p.is_admin ? 'Compte gestionnaire' : 'Mon profil'}</div>
+        <div className="eyebrow">{p.is_admin ? 'Compte du commissaire' : 'Mon profil'}</div>
         <h1>{p.nickname || p.first_name}</h1>
         <div className="fine">{p.first_name} {p.last_name} · {ctx.user.email} (privé)</div>
       </div>
