@@ -17,6 +17,7 @@ function Standings() {
   const [date, setDate] = useState(null);
   const [reveal, setReveal] = useState(null);
   const [champs, setChamps] = useState([]);
+  const [tie, setTie] = useState(null);
 
   useEffect(() => {
     supabase.from('rounds').select('*').order('number', { ascending: false }).then(({ data }) => {
@@ -34,6 +35,7 @@ function Standings() {
     if (!round) return;
     supabase.rpc('standings', { p_round: round.id }).then(({ data }) => setRows(data || []));
     supabase.rpc('round_pot', { p_round: round.id }).then(({ data }) => setPot(Number(data) || 0));
+    supabase.rpc('round_tie', { p_round: round.id }).then(({ data }) => setTie((data || [])[0] || null));
     supabase.from('game_days').select('game_date, first_game_at').gte('game_date', round.start_date).lte('game_date', todayLocal()).order('game_date', { ascending: false }).limit(30)
       .then(({ data }) => { setDays(data || []); setDate((data || [])[0] ? data[0].game_date : null); });
   }, [roundId]); // eslint-disable-line
@@ -55,7 +57,7 @@ function Standings() {
       {!round ? <div className="msg info">Aucune ronde pour l’instant.</div> : (
         <>
           {champ ? (
-            <Champion name={champ.display_name} round={champ.round_number} pot={champ.pot} />
+            <Champion name={champ.display_name} round={champ.round_number} pot={champ.pot} winners={champ.winners} share={champ.share} />
           ) : (
             <div>
               <div className="eyebrow">Ronde {round.number} · début {fmtDate(round.start_date)}</div>
@@ -63,11 +65,17 @@ function Standings() {
               <div className="fine">{alive} survivant{alive > 1 ? 's' : ''} sur {rows.length}</div>
             </div>
           )}
+          {!champ && tie && tie.tie_status === 'decision' && (
+            <div className="msg warn"><b>Égalité!</b> {tie.finalists} ont perdu leur dernière vie le même jour. Les finalistes choisissent: partage de la cagnotte (à l’unanimité) ou prolongation.</div>
+          )}
+          {!champ && tie && tie.tie_status === 'prolongation' && (
+            <div className="msg info"><b>Prolongation · jour {Math.min(5, (tie.overtime_day || 0) + 1)} de 5.</b> Une vie chacun, mort subite. Le dernier survivant l’emporte.</div>
+          )}
           <section className="panel">
             <h2>Classement</h2>
             <div className="list">
               {rows.map((r, i) => {
-                const isChamp = champ && champ.display_name === r.display_name && r.lives > 0;
+                const isChamp = champ && champ.display_name.split(' · ').includes(r.display_name);
                 return (
                   <div className="line" key={i}>
                     <span className="t">{isChamp && '🏆 '}{r.display_name}{r.is_me && <span className="fine"> (toi)</span>}</span>

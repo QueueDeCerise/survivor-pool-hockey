@@ -89,7 +89,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
       </header>
       {showChampion && (
         <div style={{ padding: '18px 18px 0' }}>
-          <Champion compact name={champion.display_name} round={champion.round_number} pot={champion.pot} />
+          <Champion compact name={champion.display_name} round={champion.round_number} pot={champion.pot} winners={champion.winners} share={champion.share} />
         </div>
       )}
       {typeof children === 'function' ? children(ctx) : children}
