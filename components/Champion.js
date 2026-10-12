@@ -1,13 +1,14 @@
 import styles from './champion.module.css';
 
-// Bannière du ou des gagnants d'une ronde
-export default function Champion({ name, round, pot, winners = 1, share, compact = false }) {
+// Bannière du ou des gagnants d'une ronde. onClose: affiche le « x » pour la masquer.
+export default function Champion({ name, round, pot, winners = 1, share, compact = false, onClose }) {
   const many = winners > 1;
   const potNum = Number(pot) || 0;
   return (
     <section className={styles.banner + (compact ? ' ' + styles.compact : '')} aria-label={`${many ? 'Champions' : 'Champion'} de la ronde ${round}: ${name}`}>
+      {onClose && <button type="button" className={styles.close} onClick={onClose} aria-label="Masquer ce bandeau">✕</button>}
       <img className={styles.crest} src="/logo.png" alt="" width="74" height="83" />
-      <div>
+      <div style={onClose ? { paddingRight: 30 } : undefined}>
         <div className={styles.eyebrow}>{many ? 'Co-champions' : 'Champion'} · Ronde {round}</div>
         <div className={styles.name}>{name}</div>
         <div className={styles.pot}>

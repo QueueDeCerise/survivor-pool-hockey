@@ -29,10 +29,12 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     if (requireAdmin && !profile.is_admin) { router.replace('/predictions'); return; }
     setCtx({ user: session.user, profile, acceptance: acc, reload: load });
 
-    // Champion récent (7 derniers jours), affiché sur la page d'accueil
+    // Champion récent (7 derniers jours), affiché sur la page d'accueil, sauf s'il a été masqué
     const { data: champs } = await supabase.rpc('round_champions');
     const recent = (champs || []).find((c) => c.finished_at && Date.now() - new Date(c.finished_at).getTime() < 7 * 86400000);
-    setChampion(recent || null);
+    let hidden = false;
+    try { hidden = !!recent && localStorage.getItem('sph-champion-masque-' + recent.round_id) === '1'; } catch (e) {}
+    setChampion(recent && !hidden ? recent : null);
 
     // Nouveaux messages au Vestiaire depuis la dernière visite
     if (!pathname.startsWith('/vestiaire')) {
@@ -74,6 +76,12 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     : [['/predictions', 'Prédiction'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']];
 
   const showChampion = champion && (pathname.startsWith('/predictions') || pathname.startsWith('/admin'));
+  // Le « x » apparaît après 2 jours d'affichage
+  const canHide = champion && champion.finished_at && Date.now() - new Date(champion.finished_at).getTime() >= 2 * 86400000;
+  const hideChampion = () => {
+    try { localStorage.setItem('sph-champion-masque-' + champion.round_id, '1'); } catch (e) {}
+    setChampion(null);
+  };
 
   return (
     <div className="shell">
@@ -89,7 +97,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
       </header>
       {showChampion && (
         <div style={{ padding: '18px 18px 0' }}>
-          <Champion compact name={champion.display_name} round={champion.round_number} pot={champion.pot} winners={champion.winners} share={champion.share} />
+          <Champion compact name={champion.display_name} round={champion.round_number} pot={champion.pot} winners={champion.winners} share={champion.share} onClose={canHide ? hideChampion : undefined} />
         </div>
       )}
       {typeof children === 'function' ? children(ctx) : children}
