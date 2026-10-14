@@ -1,0 +1,12 @@
+.picks { display: grid; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.pick { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 5px 10px; font-size: .95rem; line-height: 1.25; }
+.pick:nth-child(even) { background: var(--soft); }
+.line { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who { font-weight: 700; }
+.sep { color: var(--muted); padding: 0 6px; }
+.tags { display: flex; gap: 4px; flex: none; }
+.tag { font: 700 .66rem 'JetBrains Mono', monospace; letter-spacing: .03em; padding: 2px 6px; border-radius: 5px; text-transform: uppercase; white-space: nowrap; }
+.ok { background: var(--green-soft); color: var(--green); }
+.bad { background: var(--err-soft); color: var(--err); }
+.dup { background: var(--err); color: var(--paper); }
+.count { font-size: .8rem; color: var(--muted); }

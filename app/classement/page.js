@@ -5,8 +5,9 @@ import Lives from '@/components/Lives';
 import Champion from '@/components/Champion';
 import { supabase } from '@/lib/supabase';
 import { todayLocal, fmtDate, fmtShort } from '@/lib/time';
+import s from './classement.module.css';
 
-const OUTCOME = { survie: ['Survit', 'ok'], sans_point: ['Sans point', 'bad'], doublon: ['Doublon', 'bad'], aucun_choix: ['Aucun choix', 'bad'] };
+const OUTCOME = { survie: ['Survit', 'ok'], sans_point: ['Sans point', 'bad'], doublon: ['Perdu', 'bad'], aucun_choix: ['TARO', 'bad'] };
 
 function Standings() {
   const [rounds, setRounds] = useState([]);
@@ -87,7 +88,10 @@ function Standings() {
             </div>
           </section>
           <section className="panel stack">
-            <h2>Prédictions des participants</h2>
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <h2 style={{ margin: 0 }}>Prédictions des participants</h2>
+              {reveal && reveal.length > 0 && <span className={s.count} style={{ flex: 'none' }}>{reveal.length} prédiction{reveal.length > 1 ? 's' : ''}</span>}
+            </div>
             {days.length > 0 && (
               <div className="chips">
                 {days.map((d) => <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on' : '')} onClick={() => setDate(d.game_date)}>{fmtShort(d.game_date)}</button>)}
@@ -96,14 +100,16 @@ function Standings() {
             {!reveal || reveal.length === 0 ? (
               <div className="msg info">Les choix sont privés en ce moment. Ils apparaissent 30 minutes après le début du premier match, jusqu’à 60 minutes après la fermeture de la journée.</div>
             ) : (
-              <div className="list">
+              <div className={s.picks}>
                 {reveal.map((r, i) => (
-                  <div className="line" key={i}>
-                    <div><div className="t">{r.display_name}</div><div className="s">{r.player_name}</div></div>
-                    <div className="row" style={{ flex: 'none', gap: 6 }}>
-                      {r.doublon && <span className="badge bad">DOUBLON</span>}
-                      {r.outcome && <span className={'badge ' + OUTCOME[r.outcome][1]}>{OUTCOME[r.outcome][0]}</span>}
-                    </div>
+                  <div className={s.pick} key={i}>
+                    <span className={s.line} title={`${r.display_name} — ${r.player_name}`}>
+                      <span className={s.who}>{r.display_name}</span><span className={s.sep}>—</span>{r.player_name}
+                    </span>
+                    <span className={s.tags}>
+                      {r.doublon && <span className={s.tag + ' ' + s.dup}>Doublon</span>}
+                      {r.outcome && !(r.doublon && r.outcome === 'doublon') && <span className={s.tag + ' ' + s[OUTCOME[r.outcome][1]]}>{OUTCOME[r.outcome][0]}</span>}
+                    </span>
                   </div>
                 ))}
               </div>
