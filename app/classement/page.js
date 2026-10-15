@@ -37,7 +37,7 @@ function Standings() {
     supabase.rpc('standings', { p_round: round.id }).then(({ data }) => setRows(data || []));
     supabase.rpc('round_pot', { p_round: round.id }).then(({ data }) => setPot(Number(data) || 0));
     supabase.rpc('round_tie', { p_round: round.id }).then(({ data }) => setTie((data || [])[0] || null));
-    supabase.from('game_days').select('game_date, first_game_at').gte('game_date', round.start_date).lte('game_date', todayLocal()).order('game_date', { ascending: false }).limit(30)
+    supabase.from('game_days').select('game_date, first_game_at, closed_at').gte('game_date', round.start_date).lte('game_date', todayLocal()).order('game_date', { ascending: false }).limit(30)
       .then(({ data }) => { setDays(data || []); setDate((data || [])[0] ? data[0].game_date : null); });
   }, [roundId]); // eslint-disable-line
 
@@ -47,6 +47,21 @@ function Standings() {
   }, [date, roundId]); // eslint-disable-line
 
   const alive = rows.filter((r) => r.lives > 0).length;
+
+  // Participants encore en vie sans prédiction: TARO TSUJIMOTO (avant la fermeture de la journée).
+  const TARO = 'TARO TSUJIMOTO';
+  const day = days.find((d) => d.game_date === date);
+  const now = Date.now();
+  const first = day && day.first_game_at ? new Date(day.first_game_at).getTime() : null;
+  const windowOpen = !!day && !day.closed_at && first !== null && now >= first + 30 * 60000;
+  let list = (reveal || []).map((r) => (/^taro tsujimoto$/i.test((r.player_name || '').trim()) ? { ...r, player_name: TARO, taro: true } : r));
+  if (round && round.status !== 'terminee' && (list.length > 0 || windowOpen) && day && !day.closed_at) {
+    const have = new Set(list.map((r) => r.display_name));
+    const missing = rows.filter((r) => r.lives > 0 && !have.has(r.display_name))
+      .map((r) => ({ display_name: r.display_name, player_name: TARO, doublon: false, outcome: 'aucun_choix', taro: true }))
+      .sort((a, b) => a.display_name.localeCompare(b.display_name, 'fr'));
+    list = [...list, ...missing];
+  }
 
   return (
     <main className="page">
@@ -90,19 +105,19 @@ function Standings() {
           <section className="panel stack">
             <div className="row" style={{ justifyContent: 'space-between' }}>
               <h2 style={{ margin: 0 }}>Prédictions des participants</h2>
-              {reveal && reveal.length > 0 && <span className={s.count} style={{ flex: 'none' }}>{reveal.length} prédiction{reveal.length > 1 ? 's' : ''}</span>}
+              {list.length > 0 && <span className={s.count} style={{ flex: 'none' }}>{list.length} participant{list.length > 1 ? 's' : ''}</span>}
             </div>
             {days.length > 0 && (
               <div className="chips">
                 {days.map((d) => <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on' : '')} onClick={() => setDate(d.game_date)}>{fmtShort(d.game_date)}</button>)}
               </div>
             )}
-            {!reveal || reveal.length === 0 ? (
+            {list.length === 0 ? (
               <div className="msg info">Les choix sont privés en ce moment. Ils apparaissent 30 minutes après le début du premier match, jusqu’à 60 minutes après la fermeture de la journée.</div>
             ) : (
               <div className={s.picks}>
-                {reveal.map((r, i) => (
-                  <div className={s.pick} key={i}>
+                {list.map((r, i) => (
+                  <div className={s.pick + (r.taro ? ' ' + s.taro : '')} key={i}>
                     <span className={s.line} title={`${r.display_name} — ${r.player_name}`}>
                       <span className={s.who}>{r.display_name}</span><span className={s.sep}>—</span>{r.player_name}
                     </span>

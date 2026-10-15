@@ -10,3 +10,5 @@
 .bad { background: var(--err-soft); color: var(--err); }
 .dup { background: var(--err); color: var(--paper); }
 .count { font-size: .8rem; color: var(--muted); }
+.taro .line { color: var(--err); font-weight: 600; letter-spacing: .02em; }
+.taro .who { color: var(--ink, inherit); }
