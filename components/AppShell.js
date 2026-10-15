@@ -23,7 +23,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
       supabase.from('rule_acceptances').select('version, accepted_at').eq('user_id', uid).eq('version', RULES_VERSION).maybeSingle(),
     ]);
     if (!profile) { await supabase.auth.signOut(); router.replace('/connexion'); return; }
-    // Le commissaire ne participe pas: pas de règlements à accepter, pas de prédictions
+    // Le commissaire ne participe pas: pas de règlements à accepter, pas de prédictions personnelles
     if (profile.is_admin && pathname.startsWith('/predictions')) { router.replace('/admin'); return; }
     if (!acc && !allowWithoutRules && !profile.is_admin) { router.replace('/reglements'); return; }
     if (requireAdmin && !profile.is_admin) { router.replace('/predictions'); return; }
@@ -72,8 +72,8 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
   if (!ctx) return <div className="loading">Chargement…</div>;
 
   const links = ctx.profile.is_admin
-    ? [['/admin', 'Gestion'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']]
-    : [['/predictions', 'Prédiction'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']];
+    ? [['/admin', 'Gestion'], ['/du-jour', 'Prédictions du jour'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']]
+    : [['/predictions', 'Mes prédictions'], ['/du-jour', 'Prédictions du jour'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']];
 
   const showChampion = champion && (pathname.startsWith('/predictions') || pathname.startsWith('/admin'));
   // Le « x » apparaît après 2 jours d'affichage
@@ -82,6 +82,9 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     try { localStorage.setItem('sph-champion-masque-' + champion.round_id, '1'); } catch (e) {}
     setChampion(null);
   };
+
+  // 5 onglets: les libellés longs peuvent passer sur deux lignes sur cellulaire
+  const tabStyle = { textAlign: 'center', lineHeight: 1.15, whiteSpace: 'normal', minWidth: 0, flex: '1 1 0', padding: '8px 2px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
 
   return (
     <div className="shell">
@@ -104,11 +107,13 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
       {(ctx.acceptance || ctx.profile.is_admin) && (
         <nav className="nav">
           {links.map(([href, label]) => (
-            <Link key={href} href={href} className={pathname.startsWith(href) ? 'on' : ''}>
-              {label}
-              {href === '/vestiaire' && unread && !pathname.startsWith('/vestiaire') && (
-                <span aria-label="nouveaux messages" style={{ display: 'inline-block', width: 8, height: 8, marginLeft: 5, borderRadius: '50%', background: 'var(--red)', verticalAlign: 'middle' }} />
-              )}
+            <Link key={href} href={href} className={pathname.startsWith(href) ? 'on' : ''} style={tabStyle}>
+              <span>
+                {label}
+                {href === '/vestiaire' && unread && !pathname.startsWith('/vestiaire') && (
+                  <span aria-label="nouveaux messages" style={{ display: 'inline-block', width: 8, height: 8, marginLeft: 5, borderRadius: '50%', background: 'var(--red)', verticalAlign: 'middle' }} />
+                )}
+              </span>
             </Link>
           ))}
         </nav>
