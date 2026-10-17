@@ -164,9 +164,15 @@ function DailyPicks() {
   }
 
   // Couleur et petit mot sous la date selon MON résultat de la journée
+  // Suis-je éliminé de cette ronde? Les journées après ma dernière vie = PATINAPU
+  const meRow = rows.find((r) => r.is_me);
+  const myLast = Object.keys(mine).sort().pop() || null;
+  const iAmOut = !!meRow && meRow.lives <= 0 && !!myLast;
+
   const myChip = (d) => {
     const x = mine[d];
     const gd = days.find((y) => y.game_date === d);
+    if (!x && iAmOut && d > myLast) return { cls: ' ' + s.chipOut, word: 'PATINAPU' };
     if (!x && gd && !gd.closed_at) return { cls: ' ' + s.chipLive, word: 'En cours' };
     if (!x) return { cls: '', word: null };
     if (x.outcome === 'aucun_choix') return { cls: ' ' + s.chipBad, word: 'TARO' };
