@@ -13,6 +13,19 @@ function markSeen() {
   try { localStorage.setItem('sph-chat-seen', new Date().toISOString()); window.dispatchEvent(new Event('sph-chat-seen')); } catch (e) {}
 }
 
+// Est-ce que l'écran est (presque) au bas du fil?
+function nearBottom() {
+  const el = document.documentElement;
+  return window.innerHeight + window.scrollY >= el.scrollHeight - 180;
+}
+
+function toBottom(smooth) {
+  // Deux images pour laisser le navigateur placer le nouveau message avant de défiler
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  }));
+}
+
 function Chat({ ctx }) {
   const uid = ctx.user.id;
   const isAdmin = ctx.profile.is_admin;
@@ -22,8 +35,13 @@ function Chat({ ctx }) {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const endRef = useRef(null);
+  const [pending, setPending] = useState(0);
+  const [navH, setNavH] = useState(null);
+  const [composerH, setComposerH] = useState(70);
   const authorsRef = useRef({});
+  const atBottomRef = useRef(true);
+  const prevLenRef = useRef(0);
+  const composerRef = useRef(null);
 
   async function loadAuthors() {
     const { data } = await supabase.rpc('chat_authors');
@@ -38,7 +56,9 @@ function Chat({ ctx }) {
       await loadAuthors();
       const { data, error } = await supabase.from('chat_messages').select(COLS).order('created_at', { ascending: false }).limit(200);
       if (error) setErr(frError(error));
-      setMsgs((data || []).reverse());
+      const list = (data || []).reverse();
+      prevLenRef.current = list.length;
+      setMsgs(list);
       setLoading(false);
       markSeen();
     })();
@@ -55,7 +75,49 @@ function Chat({ ctx }) {
     return () => { supabase.removeChannel(ch); };
   }, []); // eslint-disable-line
 
-  useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ block: 'end' }); }, [msgs.length]);
+  // Suit la position de l'écran: au bas du fil ou en train de relire plus haut
+  useEffect(() => {
+    const onScroll = () => {
+      atBottomRef.current = nearBottom();
+      if (atBottomRef.current) setPending(0);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Place la zone d'écriture juste au-dessus de la barre d'onglets, peu importe sa hauteur
+  useEffect(() => {
+    const measure = () => {
+      const nav = document.querySelector('nav.nav');
+      if (nav) setNavH(nav.offsetHeight);
+      if (composerRef.current) setComposerH(composerRef.current.offsetHeight);
+    };
+    measure();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    const nav = document.querySelector('nav.nav');
+    if (ro && nav) ro.observe(nav);
+    if (ro && composerRef.current) ro.observe(composerRef.current);
+    window.addEventListener('resize', measure);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [loading]);
+
+  // À l'ouverture: directement au dernier message
+  useEffect(() => { if (!loading) { toBottom(false); atBottomRef.current = true; } }, [loading]);
+
+  // Nouveau message: on descend si on était au bas du fil ou si c'est mon message
+  useEffect(() => {
+    if (loading) return;
+    const added = msgs.length - prevLenRef.current;
+    prevLenRef.current = msgs.length;
+    if (added <= 0) return;
+    const last = msgs[msgs.length - 1];
+    if ((last && last.user_id === uid) || atBottomRef.current) {
+      toBottom(true);
+      setPending(0);
+    } else {
+      setPending((n) => n + added);
+    }
+  }, [msgs.length]); // eslint-disable-line
 
   async function send(e) {
     if (e) e.preventDefault();
@@ -67,6 +129,7 @@ function Chat({ ctx }) {
     if (error) return setErr(frError(error));
     setText('');
     setMsgs((m) => (m.some((x) => x.id === data.id) ? m : [...m, data]));
+    toBottom(true);
   }
 
   async function remove(m) {
@@ -77,9 +140,10 @@ function Chat({ ctx }) {
   }
 
   let lastDay = null;
+  const bottomGap = navH !== null ? navH + composerH + 24 : undefined;
 
   return (
-    <main className={s.wrap}>
+    <main className={s.wrap} style={bottomGap ? { paddingBottom: bottomGap } : undefined}>
       <div className={s.rule} role="note">
         <span aria-hidden="true">🤫</span>
         <span><b>Les prédictions restent secrètes.</b> Ne révèle jamais un choix, le tien ou celui d’un autre, avant sa publication officielle. Tout message qui le fait sera supprimé.</span>
@@ -109,12 +173,16 @@ function Chat({ ctx }) {
               </div>
             );
           })}
-        <div ref={endRef} />
       </div>
 
       {err && <div className="msg err" role="alert">{err}</div>}
 
-      <form className={s.composer} onSubmit={send}>
+      <form ref={composerRef} className={s.composer} onSubmit={send} style={navH !== null ? { bottom: navH } : undefined}>
+        {pending > 0 && (
+          <button type="button" className={s.jump} onClick={() => { setPending(0); toBottom(true); }}>
+            {pending} nouveau{pending > 1 ? 'x' : ''} message{pending > 1 ? 's' : ''} ↓
+          </button>
+        )}
         <textarea
           className={s.input}
           rows={1}
