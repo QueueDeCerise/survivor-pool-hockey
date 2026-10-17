@@ -22,7 +22,7 @@ function joinNames(names) {
   return names.slice(0, -1).join(', ') + ' et ' + names[names.length - 1];
 }
 
-// Bilan d'une ronde terminée: remplace les dates passées
+// Bilan d'une ronde terminée (bandeau du gagnant)
 function RoundSummary({ round, champ, rows, nbDays }) {
   if (!champ) {
     return (
@@ -60,6 +60,24 @@ function RoundSummary({ round, champ, rows, nbDays }) {
   );
 }
 
+function PickList({ list }) {
+  return (
+    <div className={s.picks}>
+      {list.map((r, i) => (
+        <div className={s.pick + (r.taro ? ' ' + s.taro : '')} key={i}>
+          <span className={s.line} title={`${r.display_name} — ${r.player_name}`}>
+            <span className={s.who}>{r.display_name}</span><span className={s.sep}>—</span>{r.player_name}
+          </span>
+          <span className={s.tags}>
+            {r.doublon && <span className={s.tag + ' ' + s.dup}>Doublon</span>}
+            {r.outcome && OUTCOME[r.outcome] && !(r.doublon && r.outcome === 'doublon') && <span className={s.tag + ' ' + s[OUTCOME[r.outcome][1]]}>{OUTCOME[r.outcome][0]}</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DailyPicks() {
   const [rounds, setRounds] = useState([]);
   const [roundId, setRoundId] = useState(null);
@@ -68,6 +86,7 @@ function DailyPicks() {
   const [date, setDate] = useState(null);
   const [reveal, setReveal] = useState(null);
   const [champs, setChamps] = useState([]);
+  const [champsLoaded, setChampsLoaded] = useState(false);
 
   useEffect(() => {
     supabase.from('rounds').select('*').order('number', { ascending: false }).then(({ data }) => {
@@ -75,41 +94,57 @@ function DailyPicks() {
       const active = (data || []).find((r) => r.status === 'en_cours') || (data || [])[0];
       if (active) setRoundId(active.id);
     });
-    supabase.rpc('round_champions').then(({ data }) => setChamps(data || []));
+    supabase.rpc('round_champions').then(({ data }) => { setChamps(data || []); setChampsLoaded(true); });
   }, []);
 
   const round = rounds.find((r) => r.id === roundId);
   const champ = champs.find((c) => c.round_id === roundId);
   const finished = !!round && round.status === 'terminee';
+  const nextRound = round && rounds.filter((r) => r.number > round.number).sort((a, b) => a.number - b.number)[0];
 
   useEffect(() => {
-    if (!round) return;
+    if (!round || !champsLoaded) return;
+    setReveal(null);
     supabase.rpc('standings', { p_round: round.id }).then(({ data }) => setRows(data || []));
-    supabase.from('game_days').select('game_date, first_game_at, closed_at').gte('game_date', round.start_date).lte('game_date', todayLocal()).order('game_date', { ascending: false }).limit(60)
-      .then(({ data }) => { setDays(data || []); setDate((data || [])[0] ? data[0].game_date : null); });
-  }, [roundId]); // eslint-disable-line
+    if (finished) {
+      // Ronde terminée: toutes les journées fermées de la ronde (du début jusqu'au sacre du gagnant)
+      const c = champs.find((x) => x.round_id === round.id);
+      const endTs = c && c.finished_at ? new Date(c.finished_at).getTime() + 15 * 60000 : Infinity;
+      let q = supabase.from('game_days').select('game_date, first_game_at, closed_at').gte('game_date', round.start_date);
+      if (nextRound && nextRound.start_date) q = q.lt('game_date', nextRound.start_date);
+      q.order('game_date', { ascending: true }).limit(200).then(({ data }) => {
+        const list = (data || []).filter((d) => d.closed_at && new Date(d.closed_at).getTime() <= endTs);
+        setDays(list);
+        setDate(list.length ? list[list.length - 1].game_date : null);
+      });
+    } else {
+      supabase.from('game_days').select('game_date, first_game_at, closed_at').gte('game_date', round.start_date).lte('game_date', todayLocal()).order('game_date', { ascending: false }).limit(60)
+        .then(({ data }) => { setDays(data || []); setDate((data || [])[0] ? data[0].game_date : null); });
+    }
+  }, [roundId, champsLoaded]); // eslint-disable-line
 
   useEffect(() => {
     if (!round || !date) { setReveal(null); return; }
     supabase.rpc('revealed_picks', { p_round: round.id, p_date: date }).then(({ data }) => setReveal(data || []));
   }, [date, roundId]); // eslint-disable-line
 
-  // Durée de la ronde: journées fermées entre le début et la fin de la ronde
-  const endTs = champ && champ.finished_at ? new Date(champ.finished_at).getTime() + 15 * 60000 : Infinity;
-  const nbDays = days.filter((d) => d.closed_at && new Date(d.closed_at).getTime() <= endTs).length;
-
-  // Participants encore en vie sans prédiction: TARO TSUJIMOTO (avant la fermeture de la journée).
   const day = days.find((d) => d.game_date === date);
-  const first = day && day.first_game_at ? new Date(day.first_game_at).getTime() : null;
-  const windowOpen = !!day && !day.closed_at && first !== null && Date.now() >= first + 30 * 60000;
   let list = (reveal || []).map((r) => (/^taro tsujimoto$/i.test((r.player_name || '').trim()) ? { ...r, player_name: TARO, taro: true } : r));
-  if (round && round.status !== 'terminee' && (list.length > 0 || windowOpen) && day && !day.closed_at) {
-    const have = new Set(list.map((r) => r.display_name));
-    const missing = rows.filter((r) => r.lives > 0 && !have.has(r.display_name))
-      .map((r) => ({ display_name: r.display_name, player_name: TARO, doublon: false, outcome: 'aucun_choix', taro: true }))
-      .sort((a, b) => a.display_name.localeCompare(b.display_name, 'fr'));
-    list = [...list, ...missing];
+
+  // Ronde en cours: survivants sans prédiction = TARO TSUJIMOTO (avant la fermeture de la journée)
+  if (round && !finished && day && !day.closed_at) {
+    const first = day.first_game_at ? new Date(day.first_game_at).getTime() : null;
+    const windowOpen = first !== null && Date.now() >= first + 30 * 60000;
+    if (list.length > 0 || windowOpen) {
+      const have = new Set(list.map((r) => r.display_name));
+      const missing = rows.filter((r) => r.lives > 0 && !have.has(r.display_name))
+        .map((r) => ({ display_name: r.display_name, player_name: TARO, doublon: false, outcome: 'aucun_choix', taro: true }))
+        .sort((a, b) => a.display_name.localeCompare(b.display_name, 'fr'));
+      list = [...list, ...missing];
+    }
   }
+
+  const dayNum = (d) => days.findIndex((x) => x.game_date === d) + 1;
 
   return (
     <main className="page">
@@ -119,7 +154,29 @@ function DailyPicks() {
         </div>
       )}
       {!round ? <div className="msg info">Aucune ronde pour l’instant.</div> : finished ? (
-        <RoundSummary round={round} champ={champ} rows={rows} nbDays={nbDays} />
+        <>
+          <RoundSummary round={round} champ={champ} rows={rows} nbDays={days.length} />
+          <section className="panel stack">
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <h2 style={{ margin: 0 }}>Historique de la ronde</h2>
+              {day && <span className={s.count} style={{ flex: 'none' }}>Jour {dayNum(date)} de {days.length}</span>}
+            </div>
+            {days.length > 0 && (
+              <div className="chips">
+                {days.map((d, i) => <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on' : '')} onClick={() => setDate(d.game_date)}>{fmtShort(d.game_date)}<small>jour {i + 1}</small></button>)}
+              </div>
+            )}
+            {days.length === 0 ? (
+              <div className="msg info">Aucune journée enregistrée pour cette ronde.</div>
+            ) : reveal === null ? (
+              <div className="fine">Chargement…</div>
+            ) : list.length === 0 ? (
+              <div className="msg info">Aucune prédiction pour cette journée.</div>
+            ) : (
+              <PickList list={list} />
+            )}
+          </section>
+        </>
       ) : (
         <section className="panel stack">
           <div className="row" style={{ justifyContent: 'space-between' }}>
@@ -134,19 +191,7 @@ function DailyPicks() {
           {list.length === 0 ? (
             <div className="msg info">Les choix sont privés en ce moment. Ils apparaissent 30 minutes après le début du premier match, jusqu’à 60 minutes après la fermeture de la journée.</div>
           ) : (
-            <div className={s.picks}>
-              {list.map((r, i) => (
-                <div className={s.pick + (r.taro ? ' ' + s.taro : '')} key={i}>
-                  <span className={s.line} title={`${r.display_name} — ${r.player_name}`}>
-                    <span className={s.who}>{r.display_name}</span><span className={s.sep}>—</span>{r.player_name}
-                  </span>
-                  <span className={s.tags}>
-                    {r.doublon && <span className={s.tag + ' ' + s.dup}>Doublon</span>}
-                    {r.outcome && OUTCOME[r.outcome] && !(r.doublon && r.outcome === 'doublon') && <span className={s.tag + ' ' + s[OUTCOME[r.outcome][1]]}>{OUTCOME[r.outcome][0]}</span>}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <PickList list={list} />
           )}
         </section>
       )}
