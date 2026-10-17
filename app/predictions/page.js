@@ -159,7 +159,6 @@ return <button key={e.round_id} className={'chip' + (e.round_id === roundId ? ' 
 <section className={s.out} role="alert">
 <div className={s.outTop}>
 <span className={s.outEyebrow}>Ronde {round && round.number} · éliminé</span>
-<Lives n={0} size={22} />
 </div>
 <div className={s.outWord}>PATINAPU</div>
 <p className={s.outText}>Tu es éliminé de la ronde {round && round.number}. Tes patins sont accrochés, mais tu peux encore suivre le carnage dans <Link href="/du-jour">Prédictions du jour</Link> et chiâler au <Link href="/vestiaire">Vestiaire</Link>.</p>
@@ -231,7 +230,7 @@ return (
 </section>
 )}
 
-{current && (
+{current && !out && (
 <p className="fine">Ton choix est enregistré en privé dans l’application. Tu peux aussi <a href={MESSENGER_URL} target="_blank" rel="noreferrer">l’envoyer au commissaire par Messenger</a>.</p>
 )}
 </>
