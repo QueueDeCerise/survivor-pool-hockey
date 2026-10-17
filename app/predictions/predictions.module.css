@@ -1,0 +1,32 @@
+.out {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  padding: 16px 18px 18px;
+  color: #fff4f2;
+  background:
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 10px, transparent 10px 20px),
+    linear-gradient(135deg, #b3141c 0%, #7a0d13 100%);
+  box-shadow: 0 10px 28px rgba(122, 13, 19, .35);
+  animation: sphHit .5s ease-out both;
+}
+.outTop { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.outEyebrow { font: 700 .8rem 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.outWord {
+  font-weight: 900;
+  font-size: clamp(2.6rem, 13vw, 4.2rem);
+  line-height: 1;
+  letter-spacing: .04em;
+  margin: 10px 0 8px;
+  text-shadow: 0 3px 0 rgba(0,0,0,.25);
+}
+.outText { margin: 0; font-size: 1rem; line-height: 1.5; }
+.outText a { color: #fff; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+@keyframes sphHit {
+  0% { transform: translateX(0) scale(.97); opacity: 0; }
+  30% { transform: translateX(-6px) scale(1); opacity: 1; }
+  50% { transform: translateX(5px); }
+  70% { transform: translateX(-3px); }
+  100% { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) { .out { animation: none; } }
