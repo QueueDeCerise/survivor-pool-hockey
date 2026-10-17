@@ -19,3 +19,9 @@
 .recapText { font-size: 1.02rem; line-height: 1.55; margin: 0; }
 .cash { font-family: 'JetBrains Mono', monospace; color: var(--green); white-space: nowrap; }
 .recapLives { margin-top: 12px; }
+
+/* Dates passées colorées selon mon résultat (sans révéler le joueur) */
+.chipOk { background: var(--green-soft) !important; border-color: color-mix(in srgb, var(--green) 35%, transparent) !important; color: var(--green) !important; }
+.chipBad { background: var(--err-soft) !important; border-color: color-mix(in srgb, var(--err) 35%, transparent) !important; color: var(--err) !important; }
+.chipSel { box-shadow: inset 0 0 0 2px currentColor; }
+.chipWord { font-weight: 700; letter-spacing: .02em; }

@@ -90,7 +90,8 @@ function DailyPicks() {
   const [reveal, setReveal] = useState(null);
   const [champs, setChamps] = useState([]);
   const [champsLoaded, setChampsLoaded] = useState(false);
-  const [cache, setCache] = useState({}); // prédictions déjà chargées d'une ronde terminée, par date
+  const [cache, setCache] = useState({});
+  const [mine, setMine] = useState({}); // mes résultats par date (sans le nom du joueur) // prédictions déjà chargées d'une ronde terminée, par date
 
   useEffect(() => {
     supabase.from('rounds').select('*').order('number', { ascending: false }).then(({ data }) => {
@@ -109,6 +110,12 @@ function DailyPicks() {
     if (!round || !champsLoaded) return;
     setReveal(null);
     supabase.rpc('standings', { p_round: round.id }).then(({ data }) => setRows(data || []));
+    setMine({});
+    supabase.rpc('my_day_results', { p_round: round.id }).then(({ data }) => {
+      const m = {};
+      (data || []).forEach((x) => { m[x.game_date] = x; });
+      setMine(m);
+    });
     if (finished) {
       // Ronde terminée: les journées entre le début et le sacre où la ronde a au moins une prédiction.
       // (Les rondes peuvent se chevaucher: on ne se fie pas à la date de début de la ronde suivante.)
@@ -156,6 +163,17 @@ function DailyPicks() {
     }
   }
 
+  // Couleur et petit mot sous la date selon MON résultat de la journée
+  const myChip = (d) => {
+    const x = mine[d];
+    if (!x) return { cls: '', word: null };
+    if (x.outcome === 'aucun_choix') return { cls: ' ' + s.chipBad, word: 'TARO' };
+    if (x.outcome === 'doublon') return { cls: ' ' + s.chipBad, word: 'DOUBLON' };
+    if (x.life_lost || x.outcome === 'sans_point') return { cls: ' ' + s.chipBad, word: '0 point' };
+    const pts = Number(x.points) || 0;
+    return { cls: ' ' + s.chipOk, word: pts > 0 ? `+${pts} pt${pts > 1 ? 's' : ''}` : 'Survit' };
+  };
+
   const dayNum = (d) => days.findIndex((x) => x.game_date === d) + 1;
 
   return (
@@ -197,7 +215,14 @@ function DailyPicks() {
           </div>
           {days.length > 0 && (
             <div className="chips">
-              {days.map((d) => <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on' : '')} onClick={() => setDate(d.game_date)}>{fmtShort(d.game_date)}</button>)}
+              {days.map((d) => {
+                const c = myChip(d.game_date);
+                return (
+                  <button key={d.game_date} className={'chip' + (d.game_date === date ? ' on ' + s.chipSel : '') + c.cls} onClick={() => setDate(d.game_date)}>
+                    {fmtShort(d.game_date)}{c.word && <small className={s.chipWord}>{c.word}</small>}
+                  </button>
+                );
+              })}
             </div>
           )}
           {list.length === 0 ? (
