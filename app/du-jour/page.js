@@ -122,6 +122,8 @@ function DailyPicks() {
           const res = await Promise.all(cand.map((d) => supabase.rpc('revealed_picks', { p_round: round.id, p_date: d.game_date }).then(({ data: x }) => x || [])));
           const map = {};
           const list = cand.filter((d, i) => { if (res[i].length) { map[d.game_date] = res[i]; return true; } return false; });
+          // Les journées jouées par le dernier survivant seul, après l'élimination de tous les autres, ne comptent pas
+          while (list.length > 1 && map[list[list.length - 1].game_date].length === 1) list.pop();
           setCache(map);
           setDays(list);
           setDate(list.length ? list[list.length - 1].game_date : null);
