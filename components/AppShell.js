@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { RULES_VERSION } from '@/lib/config';
 import { displayName } from '@/lib/time';
 import Champion from '@/components/Champion';
+import EnLigne from '@/components/EnLigne';
 
 export default function AppShell({ children, requireAdmin = false, allowWithoutRules = false }) {
   const router = useRouter();
@@ -96,7 +97,10 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
             <div className="sub">{ctx.profile.is_admin ? 'Commissaire du pool' : 'Survivor Pool Hockey'}</div>
           </div>
         </div>
-        <button className="btn secondary small" onClick={() => supabase.auth.signOut()}>Quitter</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
+          <EnLigne uid={ctx.user.id} name={displayName(ctx.profile)} isAdmin={!!ctx.profile.is_admin} />
+          <button className="btn secondary small" onClick={() => supabase.auth.signOut()}>Quitter</button>
+        </div>
       </header>
       {showChampion && (
         <div style={{ padding: '18px 18px 0' }}>
