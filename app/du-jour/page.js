@@ -166,12 +166,13 @@ function DailyPicks() {
   // Couleur et petit mot sous la date selon MON résultat de la journée
   const myChip = (d) => {
     const x = mine[d];
+    const gd = days.find((y) => y.game_date === d);
+    if (!x && gd && !gd.closed_at) return { cls: ' ' + s.chipLive, word: 'En cours' };
     if (!x) return { cls: '', word: null };
     if (x.outcome === 'aucun_choix') return { cls: ' ' + s.chipBad, word: 'TARO' };
     if (x.outcome === 'doublon') return { cls: ' ' + s.chipBad, word: 'DOUBLON' };
     if (x.life_lost || x.outcome === 'sans_point') return { cls: ' ' + s.chipBad, word: '0 point' };
-    const pts = Number(x.points) || 0;
-    return { cls: ' ' + s.chipOk, word: pts > 0 ? `+${pts} pt${pts > 1 ? 's' : ''}` : 'Survit' };
+    return { cls: ' ' + s.chipOk, word: 'Survit' };
   };
 
   const dayNum = (d) => days.findIndex((x) => x.game_date === d) + 1;
