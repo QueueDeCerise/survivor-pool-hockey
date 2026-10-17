@@ -26,6 +26,24 @@ function toBottom(smooth) {
   }));
 }
 
+// Mode sombre: la patinoire après la fermeture des lumières (s'applique à tout l'écran, seulement au Vestiaire)
+const NUIT_CSS = `
+body.sph-nuit {
+  --paper: #18212b; --ink: #e9eff5; --muted: #93a3b4; --line: #2b3846; --soft: #202b37;
+  --red: #e2434c; --err: #ff8a8a; --err-soft: #3b1c21; --green: #6fdc9b; --green-soft: #183326;
+  --gold: #f0c35a; --gold-soft: #2c2614;
+  color-scheme: dark; background: #0d1319 !important; background-image: none !important; color: var(--ink);
+}
+html:has(body.sph-nuit) { background: #0d1319; }
+body.sph-nuit .shell { background: transparent !important; }
+body.sph-nuit .top, body.sph-nuit .nav { background: #121a22 !important; border-color: var(--line) !important; color: var(--ink) !important; }
+body.sph-nuit .nav a { color: var(--muted) !important; }
+body.sph-nuit .nav a.on { color: var(--ink) !important; }
+body.sph-nuit .who { color: var(--ink) !important; }
+body.sph-nuit .sub { color: var(--muted) !important; }
+body.sph-nuit .btn.secondary { background: var(--soft) !important; color: var(--ink) !important; border-color: var(--line) !important; }
+`;
+
 function Chat({ ctx }) {
   const uid = ctx.user.id;
   const isAdmin = ctx.profile.is_admin;
@@ -42,6 +60,28 @@ function Chat({ ctx }) {
   const atBottomRef = useRef(true);
   const prevLenRef = useRef(0);
   const composerRef = useRef(null);
+  const [nuit, setNuit] = useState(false);
+
+  // Mode sombre du Vestiaire: mémorisé sur l'appareil (sinon, suit le réglage du téléphone/ordinateur)
+  useEffect(() => {
+    let v = null;
+    try { v = localStorage.getItem('sph-vestiaire-nuit'); } catch (e) {}
+    const sys = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setNuit(v === null ? !!sys : v === '1');
+  }, []);
+  useEffect(() => {
+    document.body.classList.toggle('sph-nuit', nuit);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const old = meta ? meta.getAttribute('content') : null;
+    if (meta && nuit) meta.setAttribute('content', '#0d1319');
+    return () => { document.body.classList.remove('sph-nuit'); if (meta && old) meta.setAttribute('content', old); };
+  }, [nuit]);
+  const toggleNuit = () => {
+    setNuit((n) => {
+      try { localStorage.setItem('sph-vestiaire-nuit', n ? '0' : '1'); } catch (e) {}
+      return !n;
+    });
+  };
 
   async function loadAuthors() {
     const { data } = await supabase.rpc('chat_authors');
@@ -143,7 +183,13 @@ function Chat({ ctx }) {
   const bottomGap = navH !== null ? navH + composerH + 24 : undefined;
 
   return (
-    <main className={s.wrap} style={bottomGap ? { paddingBottom: bottomGap } : undefined}>
+    <main className={s.wrap + (nuit ? ' ' + s.nuit : '')} style={bottomGap ? { paddingBottom: bottomGap } : undefined}>
+      {nuit && <style>{NUIT_CSS}</style>}
+      <div className={s.bar}>
+        <button type="button" className={s.mode} onClick={toggleNuit} aria-pressed={nuit}>
+          <span aria-hidden="true">{nuit ? '☀️' : '🌙'}</span>{nuit ? 'Mode clair' : 'Mode sombre'}
+        </button>
+      </div>
       <div className={s.rule} role="note">
         <span aria-hidden="true">🤫</span>
         <span><b>Les prédictions restent secrètes.</b> Ne révèle jamais un choix, le tien ou celui d’un autre, avant sa publication officielle. Tout message qui le fait sera supprimé.</span>
