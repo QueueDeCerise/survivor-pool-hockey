@@ -4,6 +4,9 @@ import AppShell from '@/components/AppShell';
 import Lives from '@/components/Lives';
 import { supabase } from '@/lib/supabase';
 import { todayLocal, fmtShort } from '@/lib/time';
+import { TIMEZONE } from '@/lib/config';
+
+const localDay = (ts) => new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
 import s from './du-jour.module.css';
 
 const OUTCOME = { survie: ['Survit', 'ok'], sans_point: ['Sans point', 'bad'], doublon: ['Perdu', 'bad'], aucun_choix: ['TARO', 'bad'] };
@@ -87,6 +90,7 @@ function DailyPicks() {
   const [reveal, setReveal] = useState(null);
   const [champs, setChamps] = useState([]);
   const [champsLoaded, setChampsLoaded] = useState(false);
+  const [cache, setCache] = useState({}); // prédictions déjà chargées d'une ronde terminée, par date
 
   useEffect(() => {
     supabase.from('rounds').select('*').order('number', { ascending: false }).then(({ data }) => {
@@ -100,23 +104,28 @@ function DailyPicks() {
   const round = rounds.find((r) => r.id === roundId);
   const champ = champs.find((c) => c.round_id === roundId);
   const finished = !!round && round.status === 'terminee';
-  const nextRound = round && rounds.filter((r) => r.number > round.number).sort((a, b) => a.number - b.number)[0];
 
   useEffect(() => {
     if (!round || !champsLoaded) return;
     setReveal(null);
     supabase.rpc('standings', { p_round: round.id }).then(({ data }) => setRows(data || []));
     if (finished) {
-      // Ronde terminée: toutes les journées fermées de la ronde (du début jusqu'au sacre du gagnant)
+      // Ronde terminée: les journées entre le début et le sacre où la ronde a au moins une prédiction.
+      // (Les rondes peuvent se chevaucher: on ne se fie pas à la date de début de la ronde suivante.)
       const c = champs.find((x) => x.round_id === round.id);
-      const endTs = c && c.finished_at ? new Date(c.finished_at).getTime() + 15 * 60000 : Infinity;
-      let q = supabase.from('game_days').select('game_date, first_game_at, closed_at').gte('game_date', round.start_date);
-      if (nextRound && nextRound.start_date) q = q.lt('game_date', nextRound.start_date);
-      q.order('game_date', { ascending: true }).limit(200).then(({ data }) => {
-        const list = (data || []).filter((d) => d.closed_at && new Date(d.closed_at).getTime() <= endTs);
-        setDays(list);
-        setDate(list.length ? list[list.length - 1].game_date : null);
-      });
+      const end = c && c.finished_at ? localDay(c.finished_at) : todayLocal();
+      setDays([]); setDate(null); setCache({});
+      supabase.from('game_days').select('game_date, first_game_at, closed_at').gte('game_date', round.start_date).lte('game_date', end)
+        .order('game_date', { ascending: true }).limit(200)
+        .then(async ({ data }) => {
+          const cand = data || [];
+          const res = await Promise.all(cand.map((d) => supabase.rpc('revealed_picks', { p_round: round.id, p_date: d.game_date }).then(({ data: x }) => x || [])));
+          const map = {};
+          const list = cand.filter((d, i) => { if (res[i].length) { map[d.game_date] = res[i]; return true; } return false; });
+          setCache(map);
+          setDays(list);
+          setDate(list.length ? list[list.length - 1].game_date : null);
+        });
     } else {
       supabase.from('game_days').select('game_date, first_game_at, closed_at').gte('game_date', round.start_date).lte('game_date', todayLocal()).order('game_date', { ascending: false }).limit(60)
         .then(({ data }) => { setDays(data || []); setDate((data || [])[0] ? data[0].game_date : null); });
@@ -125,6 +134,7 @@ function DailyPicks() {
 
   useEffect(() => {
     if (!round || !date) { setReveal(null); return; }
+    if (finished && cache[date]) { setReveal(cache[date]); return; }
     supabase.rpc('revealed_picks', { p_round: round.id, p_date: date }).then(({ data }) => setReveal(data || []));
   }, [date, roundId]); // eslint-disable-line
 
