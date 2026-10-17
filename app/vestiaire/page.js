@@ -185,11 +185,6 @@ function Chat({ ctx }) {
   return (
     <main className={s.wrap + (nuit ? ' ' + s.nuit : '')} style={bottomGap ? { paddingBottom: bottomGap } : undefined}>
       {nuit && <style>{NUIT_CSS}</style>}
-      <div className={s.bar}>
-        <button type="button" className={s.mode} onClick={toggleNuit} aria-pressed={nuit}>
-          <span aria-hidden="true">{nuit ? '☀️' : '🌙'}</span>{nuit ? 'Mode clair' : 'Mode sombre'}
-        </button>
-      </div>
       <div className={s.rule} role="note">
         <span aria-hidden="true">🤫</span>
         <span><b>Les prédictions restent secrètes.</b> Ne révèle jamais un choix, le tien ou celui d’un autre, avant sa publication officielle. Tout message qui le fait sera supprimé.</span>
@@ -229,6 +224,9 @@ function Chat({ ctx }) {
             {pending} nouveau{pending > 1 ? 'x' : ''} message{pending > 1 ? 's' : ''} ↓
           </button>
         )}
+        <button type="button" className={s.mode} onClick={toggleNuit} aria-pressed={nuit} aria-label={nuit ? 'Passer au mode clair' : 'Passer au mode sombre'} title={nuit ? 'Mode clair' : 'Mode sombre'}>
+          <span aria-hidden="true">{nuit ? '☀️' : '🌙'}</span>
+        </button>
         <textarea
           className={s.input}
           rows={1}

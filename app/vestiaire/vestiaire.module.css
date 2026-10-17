@@ -23,8 +23,7 @@
 @keyframes jumpIn { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .row, .jump { animation: none; } }
 
-.bar { display: flex; justify-content: flex-end; margin-bottom: -4px; }
-.mode { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 99px; background: var(--paper); color: var(--ink); font-family: inherit; font-weight: 700; font-size: .88rem; cursor: pointer; }
+.mode { flex: none; width: 46px; height: 46px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--line); border-radius: 12px; background: var(--soft); font-size: 1.2rem; cursor: pointer; padding: 0; }
 .mode:hover { border-color: var(--red); }
 
 /* ---- Mode sombre (classe locale sur la page; le reste de l'écran est géré dans page.js) ---- */
@@ -35,4 +34,5 @@
 .nuit .input::placeholder { color: var(--muted); }
 .nuit .day { background: #1b2530; color: var(--muted); }
 .nuit .staff { color: #fff; }
+.nuit .mode { background: #0f161d; }
 .nuit .jump { color: #fff; box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
