@@ -30,9 +30,13 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     if (requireAdmin && !profile.is_admin) { router.replace('/predictions'); return; }
     setCtx({ user: session.user, profile, acceptance: acc, reload: load });
 
-    // Champion récent (7 derniers jours), affiché sur la page d'accueil, sauf s'il a été masqué
-    const { data: champs } = await supabase.rpc('round_champions');
-    const recent = (champs || []).find((c) => c.finished_at && Date.now() - new Date(c.finished_at).getTime() < 7 * 86400000);
+    // Champion récent (7 derniers jours) de la saison en cours, sauf s'il a été masqué
+    const [{ data: champs }, { data: vis }] = await Promise.all([
+      supabase.rpc('round_champions'),
+      supabase.from('rounds').select('id'),
+    ]);
+    const visible = new Set((vis || []).map((r) => r.id));
+    const recent = (champs || []).find((c) => visible.has(c.round_id) && c.finished_at && Date.now() - new Date(c.finished_at).getTime() < 7 * 86400000);
     let hidden = false;
     try { hidden = !!recent && localStorage.getItem('sph-champion-masque-' + recent.round_id) === '1'; } catch (e) {}
     setChampion(recent && !hidden ? recent : null);
@@ -76,7 +80,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     ? [['/admin', 'Gestion'], ['/du-jour', 'Prédictions du jour'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']]
     : [['/predictions', 'Mes prédictions'], ['/du-jour', 'Prédictions du jour'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']];
 
-  const showChampion = champion && (pathname.startsWith('/predictions') || pathname.startsWith('/admin'));
+  const showChampion = champion && (pathname.startsWith('/predictions') || (pathname.startsWith('/admin') && !pathname.startsWith('/admin/saisons')));
   // Le « x » apparaît après 2 jours d'affichage
   const canHide = champion && champion.finished_at && Date.now() - new Date(champion.finished_at).getTime() >= 2 * 86400000;
   const hideChampion = () => {
@@ -86,6 +90,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
 
   // 5 onglets: les libellés longs peuvent passer sur deux lignes sur cellulaire
   const tabStyle = { textAlign: 'center', lineHeight: 1.15, whiteSpace: 'normal', minWidth: 0, flex: '1 1 0', padding: '8px 2px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  const onSeasons = pathname.startsWith('/admin/saisons');
 
   return (
     <div className="shell">
@@ -102,6 +107,13 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
           <button className="btn secondary small" onClick={() => supabase.auth.signOut()}>Quitter</button>
         </div>
       </header>
+      {ctx.profile.is_admin && pathname.startsWith('/admin') && (
+        <div style={{ padding: '10px 18px 0', display: 'flex', justifyContent: 'flex-end' }}>
+          <Link href={onSeasons ? '/admin' : '/admin/saisons'} className="btn secondary small">
+            {onSeasons ? '← Bureau du commissaire' : '🗄️ Saisons et archives'}
+          </Link>
+        </div>
+      )}
       {showChampion && (
         <div style={{ padding: '18px 18px 0' }}>
           <Champion compact name={champion.display_name} round={champion.round_number} pot={champion.pot} winners={champion.winners} share={champion.share} onClose={canHide ? hideChampion : undefined} />
