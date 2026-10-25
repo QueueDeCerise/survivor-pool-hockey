@@ -2,10 +2,12 @@
 import { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import { supabase, frError } from '@/lib/supabase';
+import { TIMEZONE } from '@/lib/config';
 import { fmtDate } from '@/lib/time';
 import s from './comptes.module.css';
 
-const dateOf = (ts) => (ts ? String(ts).slice(0, 10) : null);
+// Date locale (heure de Toronto), pas la date UTC
+const dateOf = (ts) => (ts ? new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts)) : null);
 const nameOf = (a) => a.nickname || a.first_name || '…';
 
 function Accounts({ ctx }) {

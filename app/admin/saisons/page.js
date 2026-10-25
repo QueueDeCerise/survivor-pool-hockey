@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import { supabase, frError } from '@/lib/supabase';
+import { TIMEZONE } from '@/lib/config';
 import { fmtDate, fmtShort, fmtTime } from '@/lib/time';
 import s from './saisons.module.css';
 
@@ -11,7 +12,8 @@ const OUT = {
   doublon: ['Doublon', 'bad'],
   aucun_choix: ['TARO', 'taro'],
 };
-const dateOf = (ts) => (ts ? String(ts).slice(0, 10) : null);
+// Date locale (heure de Toronto), pas la date UTC
+const dateOf = (ts) => (ts ? new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts)) : null);
 
 function csvCell(v) {
   const t = v === null || v === undefined ? '' : String(v);
