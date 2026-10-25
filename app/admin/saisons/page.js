@@ -48,19 +48,28 @@ function RoundGrid({ season, round }) {
 
   const dates = [...new Set(cells.map((c) => c.game_date))].sort();
   const at = {};
-  cells.forEach((c) => { at[c.user_id + '|' + c.game_date] = c; });
-  const lostOn = (uid) => {
-    const lost = cells.filter((c) => c.user_id === uid && c.life_lost).map((c) => c.game_date).sort();
+  cells.forEach((c) => { at[c.row_key + '|' + c.game_date] = c; });
+  const lostOn = (key) => {
+    const lost = cells.filter((c) => c.row_key === key && c.life_lost).map((c) => c.game_date).sort();
     return lost.length >= 3 ? lost[lost.length - 1] : null;
   };
-  const sorted = [...people].sort((a, b) => (b.winner - a.winner) || (b.lives - a.lives) || a.display_name.localeCompare(b.display_name, 'fr'));
+  const sorted = [...people].sort((a, b) =>
+    (!!a.removed_at - !!b.removed_at) || (b.winner - a.winner) || (b.lives - a.lives) || a.display_name.localeCompare(b.display_name, 'fr'));
+  const nbRemoved = people.filter((p) => p.removed_at).length;
+
+  const status = (p) => {
+    if (p.removed_at) return `Retiré le ${fmtShort(dateOf(p.removed_at))}`;
+    if (p.lives > 0) return `${p.lives} vie${p.lives > 1 ? 's' : ''}`;
+    const out = lostOn(p.row_key);
+    return out ? `Out ${fmtShort(out)}` : 'Out';
+  };
 
   const exportCsv = () => {
-    const head = ['Participant', ...dates, 'Vies restantes', 'Gagnant', 'Payé'];
+    const head = ['Participant', ...dates, 'Statut', 'Gagnant', 'Payé'];
     const rows = sorted.map((p) => [
-      p.display_name,
-      ...dates.map((d) => { const c = at[p.user_id + '|' + d]; return c ? `${c.player_name}${c.outcome ? ' (' + (OUT[c.outcome] ? OUT[c.outcome][0] : c.outcome) + ')' : ''}` : ''; }),
-      p.lives, p.winner ? 'Oui' : '', p.paid ? 'Oui' : 'Non',
+      p.display_name + (p.removed_at ? ' (retiré)' : ''),
+      ...dates.map((d) => { const c = at[p.row_key + '|' + d]; return c ? `${c.player_name}${c.outcome ? ' (' + (OUT[c.outcome] ? OUT[c.outcome][0] : c.outcome) + ')' : ''}` : ''; }),
+      status(p), p.winner ? 'Oui' : '', p.paid ? 'Oui' : 'Non',
     ]);
     const safe = season.name.replace(/[^\w\-]+/g, '-');
     download(`${safe}-ronde-${round.number}.csv`, [head, ...rows]);
@@ -68,39 +77,40 @@ function RoundGrid({ season, round }) {
 
   return (
     <div className="stack">
-      {dates.length === 0 ? <div className="msg info">Aucune prédiction enregistrée pour cette ronde.</div> : (
+      {nbRemoved > 0 && <div className="fine">{nbRemoved} participant{nbRemoved > 1 ? 's' : ''} retiré{nbRemoved > 1 ? 's' : ''} par le Commissaire: conservé{nbRemoved > 1 ? 's' : ''} ici pour mémoire, sans compter dans la ronde.</div>}
+      {dates.length === 0 && people.length === 0 ? <div className="msg info">Aucune inscription dans cette ronde.</div> : (
         <div className={s.gridWrap}>
           <table className={s.grid}>
             <thead>
               <tr>
                 <th className={s.sticky}>Participant</th>
                 {dates.map((d) => <th key={d}>{fmtShort(d)}</th>)}
-                <th>Vies</th>
+                <th>Statut</th>
               </tr>
             </thead>
             <tbody>
-              {sorted.map((p) => {
-                const out = lostOn(p.user_id);
-                return (
-                  <tr key={p.user_id}>
-                    <th className={s.sticky}>{p.winner && '🏆 '}{p.display_name}</th>
-                    {dates.map((d) => {
-                      const c = at[p.user_id + '|' + d];
-                      if (!c) return <td key={d} className={s.none}>—</td>;
-                      const o = OUT[c.outcome];
-                      return (
-                        <td key={d}>
-                          <div className={s.cell + ' ' + (o ? s[o[1]] : s.wait)}>
-                            <b>{c.player_name}</b>
-                            <span>{o ? o[0] : 'en attente'}</span>
-                          </div>
-                        </td>
-                      );
-                    })}
-                    <td className={s.lives}>{p.lives > 0 ? `${p.lives} vie${p.lives > 1 ? 's' : ''}` : (out ? `Out ${fmtShort(out)}` : 'Out')}</td>
-                  </tr>
-                );
-              })}
+              {sorted.map((p) => (
+                <tr key={p.row_key} className={p.removed_at ? s.removed : ''}>
+                  <th className={s.sticky}>
+                    {p.winner && '🏆 '}{p.display_name}
+                    {p.removed_at && <span className={s.tagRemoved}>Retiré</span>}
+                  </th>
+                  {dates.map((d) => {
+                    const c = at[p.row_key + '|' + d];
+                    if (!c) return <td key={d} className={s.none}>—</td>;
+                    const o = OUT[c.outcome];
+                    return (
+                      <td key={d}>
+                        <div className={s.cell + ' ' + (o ? s[o[1]] : s.wait)}>
+                          <b>{c.player_name}</b>
+                          <span>{o ? o[0] : (p.removed_at ? 'non jouée' : 'en attente')}</span>
+                        </div>
+                      </td>
+                    );
+                  })}
+                  <td className={s.lives}>{status(p)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -134,8 +144,13 @@ function Archive({ season }) {
   return (
     <div className="stack">
       <div className={s.seasonHead}>
-        <h2 style={{ margin: 0 }}>{season.name}</h2>
-        <div className="fine">Du {fmtDate(dateOf(season.started_at))} au {season.ended_at ? fmtDate(dateOf(season.ended_at)) : '…'} · {season.nb_rounds} ronde{season.nb_rounds > 1 ? 's' : ''}</div>
+        <h2 style={{ margin: 0 }}>{season.name}{season.is_current && <span className={s.curTag}>en cours</span>}</h2>
+        <div className="fine">
+          {season.is_current
+            ? <>Depuis le {fmtDate(dateOf(season.started_at))}</>
+            : <>Du {fmtDate(dateOf(season.started_at))} au {season.ended_at ? fmtDate(dateOf(season.ended_at)) : '…'}</>}
+          {' '}· {season.nb_rounds} ronde{season.nb_rounds > 1 ? 's' : ''}
+        </div>
       </div>
       {err && <div className="msg err">{err}</div>}
       {!rounds ? <div className="fine">Chargement…</div> : rounds.length === 0 ? <div className="msg info">Aucune ronde dans cette saison.</div> : (
@@ -143,8 +158,8 @@ function Archive({ season }) {
           <div className={s.rounds}>
             {rounds.map((r) => (
               <button key={r.id} className={s.roundCard + (r.id === roundId ? ' ' + s.roundOn : '')} onClick={() => setRoundId(r.id)}>
-                <span className={s.roundNum}>Ronde {r.number}</span>
-                <span className={s.roundWin}>{r.winners ? '🏆 ' + r.winners : 'Aucun gagnant déclaré'}</span>
+                <span className={s.roundNum}>Ronde {r.number}{r.status !== 'terminee' ? (r.status === 'en_cours' ? ' · en cours' : ' · inscriptions') : ''}</span>
+                <span className={s.roundWin}>{r.winners ? '🏆 ' + r.winners : (r.status === 'terminee' ? 'Aucun gagnant déclaré' : 'À suivre…')}</span>
                 <span className={s.roundMeta}>Début {fmtShort(r.start_date)} · {r.participants} participant{r.participants > 1 ? 's' : ''} · {Number(r.pot) || 0} $</span>
               </button>
             ))}
@@ -154,7 +169,7 @@ function Archive({ season }) {
       )}
       <div className={s.chatBox}>
         <button className="btn secondary" onClick={() => setShowChat((v) => !v)} disabled={!chat}>
-          {showChat ? 'Masquer' : 'Voir'} le Vestiaire archivé{chat ? ` (${chat.length} message${chat.length > 1 ? 's' : ''})` : ''}
+          {showChat ? 'Masquer' : 'Voir'} le Vestiaire {season.is_current ? 'de la saison' : 'archivé'}{chat ? ` (${chat.length} message${chat.length > 1 ? 's' : ''})` : ''}
         </button>
         {showChat && chat && (
           chat.length === 0 ? <div className="fine">Aucun message dans cette saison.</div> : (
@@ -181,23 +196,22 @@ function Seasons() {
   const [oldName, setOldName] = useState('');
   const [confirmTxt, setConfirmTxt] = useState('');
   const [busy, setBusy] = useState(false);
-  const [archId, setArchId] = useState(null);
+  const [viewId, setViewId] = useState(null);
 
-  async function load() {
+  async function load(reset) {
     const { data, error } = await supabase.rpc('admin_seasons');
     if (error) { setErr(frError(error)); setSeasons([]); return; }
     setSeasons(data || []);
     const cur = (data || []).find((x) => x.is_current);
     if (cur) setOldName(cur.name);
-    const arch = (data || []).filter((x) => !x.is_current);
-    setArchId((v) => v ?? (arch[0] ? arch[0].id : null));
+    setViewId((v) => (v && !reset ? v : (cur ? cur.id : ((data || [])[0] ? data[0].id : null))));
   }
   useEffect(() => { load(); }, []);
 
   const current = (seasons || []).find((x) => x.is_current);
-  const archives = (seasons || []).filter((x) => !x.is_current);
   const blocked = current && current.nb_open > 0;
   const ready = !blocked && newName.trim().length > 0 && confirmTxt.trim().toUpperCase() === 'NOUVELLE SAISON';
+  const viewed = (seasons || []).find((x) => x.id === viewId);
 
   async function launch(e) {
     e.preventDefault();
@@ -207,8 +221,8 @@ function Seasons() {
     setBusy(false);
     if (error) return setErr(frError(error));
     setOk(`La saison « ${newName.trim()} » est lancée. Prochaine ronde: ronde 1.`);
-    setNewName(''); setConfirmTxt(''); setArchId(null);
-    load();
+    setNewName(''); setConfirmTxt('');
+    load(true);
   }
 
   if (!seasons) return <main className="page"><div className="loading">Chargement…</div></main>;
@@ -224,13 +238,13 @@ function Seasons() {
       {ok && <div className="msg ok" role="status">{ok}</div>}
 
       <section className="panel stack">
-        <div className="eyebrow">Saison en cours</div>
-        {current ? (
-          <div>
-            <h2 style={{ margin: '0 0 2px' }}>{current.name}</h2>
-            <div className="fine">Depuis le {fmtDate(dateOf(current.started_at))} · {current.nb_rounds} ronde{current.nb_rounds > 1 ? 's' : ''}</div>
+        <div className="eyebrow">Consulter · Commissaire seulement</div>
+        {seasons.length > 1 && (
+          <div className="chips">
+            {seasons.map((x) => <button key={x.id} className={'chip' + (x.id === viewId ? ' on' : '')} onClick={() => setViewId(x.id)}>{x.name}<small>{x.is_current ? 'en cours' : 'archivée'}</small></button>)}
           </div>
-        ) : <div className="msg warn">Aucune saison en cours.</div>}
+        )}
+        {viewed ? <Archive season={viewed} /> : <div className="msg info">Aucune saison à afficher.</div>}
       </section>
 
       <section className={'panel stack ' + s.danger}>
@@ -249,20 +263,6 @@ function Seasons() {
           </label>
           <button className={'btn ' + s.go} type="submit" disabled={!ready || busy}>{busy ? 'Lancement…' : 'Lancer la nouvelle saison'}</button>
         </form>
-      </section>
-
-      <section className="panel stack">
-        <div className="eyebrow">Archives · Commissaire seulement</div>
-        {archives.length === 0 ? <div className="msg info">Aucune archive pour l’instant. Elles apparaîtront ici après le lancement d’une nouvelle saison.</div> : (
-          <>
-            {archives.length > 1 && (
-              <div className="chips">
-                {archives.map((x) => <button key={x.id} className={'chip' + (x.id === archId ? ' on' : '')} onClick={() => setArchId(x.id)}>{x.name}<small>{x.nb_rounds} ronde{x.nb_rounds > 1 ? 's' : ''}</small></button>)}
-              </div>
-            )}
-            {archives.find((x) => x.id === archId) && <Archive season={archives.find((x) => x.id === archId)} />}
-          </>
-        )}
       </section>
     </main>
   );

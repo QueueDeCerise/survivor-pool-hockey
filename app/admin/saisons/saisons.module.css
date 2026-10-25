@@ -2,6 +2,7 @@
 .lbl { display: grid; gap: 6px; font-size: .92rem; font-weight: 600; }
 .go { background: var(--err) !important; border-color: var(--err) !important; }
 .seasonHead { display: grid; gap: 2px; }
+.curTag { margin-left: 8px; vertical-align: middle; font: 700 .65rem 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; background: #e4f0fb; color: #1d5f99; }
 .rounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
 .roundCard { display: grid; gap: 3px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); font-family: inherit; cursor: pointer; }
 .roundCard:hover { border-color: var(--red); }
@@ -24,6 +25,9 @@ thead .sticky { background: var(--soft); z-index: 2; }
 .wait { background: #e4f0fb; color: #1d5f99; }
 .none { color: var(--muted); }
 .lives { font: 700 .8rem 'JetBrains Mono', monospace; }
+.removed td, .removed th { opacity: .62; }
+.removed .sticky { font-style: italic; }
+.tagRemoved { margin-left: 6px; font: 700 .6rem 'JetBrains Mono', monospace; letter-spacing: .06em; text-transform: uppercase; padding: 2px 5px; border-radius: 5px; background: var(--ink); color: var(--paper); font-style: normal; }
 .chatBox { display: grid; gap: 10px; }
 .chat { display: grid; gap: 8px; max-height: 420px; overflow-y: auto; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
 .msg { display: grid; gap: 2px; }
