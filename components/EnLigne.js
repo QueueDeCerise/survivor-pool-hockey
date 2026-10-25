@@ -7,7 +7,8 @@ import s from './EnLigne.module.css';
 export default function EnLigne({ uid, name, isAdmin }) {
   const [open, setOpen] = useState(false);
   const [online, setOnline] = useState({}); // user_id -> { name, admin }
-  const [people, setPeople] = useState([]); // [{ id?, name, admin }]
+  const [people, setPeople] = useState([]); // [{ id, name, admin }]
+  const [loaded, setLoaded] = useState(false);
   const boxRef = useRef(null);
 
   // Connexion au canal de présence: on s'annonce et on écoute les autres
@@ -34,23 +35,11 @@ export default function EnLigne({ uid, name, isAdmin }) {
     return () => { document.removeEventListener('visibilitychange', onVis); supabase.removeChannel(ch); };
   }, [uid, name, isAdmin]);
 
-  // Liste des participants: auteurs connus + inscrits de la ronde en cours
+  // Liste des participants actifs (les profils supprimés n'y sont plus)
   async function loadPeople() {
-    const byName = {};
-    const add = (n, extra) => { if (n && !byName[n]) byName[n] = { name: n, ...extra }; };
-    try {
-      const { data } = await supabase.rpc('chat_authors');
-      (data || []).forEach((a) => add(a.display_name, { id: a.id, admin: !!a.is_admin }));
-    } catch (e) {}
-    try {
-      const { data: rs } = await supabase.from('rounds').select('id, status, number').order('number', { ascending: false }).limit(3);
-      const r = (rs || []).find((x) => x.status !== 'terminee') || (rs || [])[0];
-      if (r) {
-        const { data: st } = await supabase.rpc('standings', { p_round: r.id });
-        (st || []).forEach((x) => add(x.display_name, { admin: false }));
-      }
-    } catch (e) {}
-    setPeople(Object.values(byName));
+    const { data } = await supabase.rpc('pool_people');
+    setPeople((data || []).map((a) => ({ id: a.id, name: a.display_name, admin: !!a.is_admin })));
+    setLoaded(true);
   }
 
   useEffect(() => { if (open) loadPeople(); }, [open]); // eslint-disable-line
@@ -65,18 +54,9 @@ export default function EnLigne({ uid, name, isAdmin }) {
     return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  const onlineIds = Object.keys(online);
-  const onlineNames = new Set(Object.values(online).map((o) => o.name));
-  const count = onlineIds.length;
-
-  // Fusion: tout le monde connu + toute personne en ligne absente de la liste
-  const all = [...people];
-  Object.entries(online).forEach(([id, o]) => {
-    if (!all.some((p) => p.id === id || p.name === o.name)) all.push({ id, name: o.name, admin: o.admin });
-  });
-  const isOn = (p) => (p.id && online[p.id]) || onlineNames.has(p.name);
-  const rows = all
-    .map((p) => ({ ...p, on: !!isOn(p), me: p.id === uid || p.name === name }))
+  const count = Object.keys(online).length;
+  const rows = people
+    .map((p) => ({ ...p, on: !!online[p.id], me: p.id === uid }))
     .sort((a, b) => (b.on - a.on) || (b.admin - a.admin) || a.name.localeCompare(b.name, 'fr'));
 
   return (
@@ -93,9 +73,9 @@ export default function EnLigne({ uid, name, isAdmin }) {
             <span>{count} connecté{count > 1 ? 's' : ''}</span>
           </div>
           <div className={s.list}>
-            {rows.length === 0 && <div className={s.empty}>Chargement…</div>}
+            {!loaded && <div className={s.empty}>Chargement…</div>}
             {rows.map((p) => (
-              <div key={p.id || p.name} className={s.row + (p.on ? '' : ' ' + s.off)}>
+              <div key={p.id} className={s.row + (p.on ? '' : ' ' + s.off)}>
                 <span className={s.name}>
                   {p.name}{p.me && <span className={s.me}> (toi)</span>}
                   {p.admin && <span className={s.staff}>Commissaire</span>}
