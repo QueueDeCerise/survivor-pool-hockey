@@ -1,0 +1,12 @@
+.list { display: grid; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.who { min-width: 0; display: grid; gap: 2px; }
+.name { font-weight: 700; font-size: 1rem; }
+.meta { font-size: .84rem; color: var(--muted); overflow-wrap: anywhere; }
+.staff { margin-left: 6px; font: 700 .6rem 'JetBrains Mono', monospace; letter-spacing: .06em; padding: 2px 5px; border-radius: 5px; background: var(--red); color: var(--paper); text-transform: uppercase; vertical-align: middle; }
+.danger { border-left: 5px solid var(--err); }
+.effects { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: .95rem; line-height: 1.45; }
+.lbl { display: grid; gap: 6px; font-size: .92rem; font-weight: 600; }
+.go { background: var(--err) !important; border-color: var(--err) !important; }
+.gone { opacity: .7; }

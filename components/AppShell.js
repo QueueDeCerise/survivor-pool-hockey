@@ -23,7 +23,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
       supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
       supabase.from('rule_acceptances').select('version, accepted_at').eq('user_id', uid).eq('version', RULES_VERSION).maybeSingle(),
     ]);
-    if (!profile) { await supabase.auth.signOut(); router.replace('/connexion'); return; }
+    if (!profile || profile.deleted_at) { await supabase.auth.signOut(); router.replace('/connexion'); return; }
     // Le commissaire ne participe pas: pas de règlements à accepter, pas de prédictions personnelles
     if (profile.is_admin && pathname.startsWith('/predictions')) { router.replace('/admin'); return; }
     if (!acc && !allowWithoutRules && !profile.is_admin) { router.replace('/reglements'); return; }
@@ -80,7 +80,8 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     ? [['/admin', 'Gestion'], ['/du-jour', 'Prédictions du jour'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']]
     : [['/predictions', 'Mes prédictions'], ['/du-jour', 'Prédictions du jour'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']];
 
-  const showChampion = champion && (pathname.startsWith('/predictions') || (pathname.startsWith('/admin') && !pathname.startsWith('/admin/saisons')));
+  const subPage = pathname.startsWith('/admin/saisons') || pathname.startsWith('/admin/comptes');
+  const showChampion = champion && (pathname.startsWith('/predictions') || (pathname.startsWith('/admin') && !subPage));
   // Le « x » apparaît après 2 jours d'affichage
   const canHide = champion && champion.finished_at && Date.now() - new Date(champion.finished_at).getTime() >= 2 * 86400000;
   const hideChampion = () => {
@@ -90,7 +91,8 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
 
   // 5 onglets: les libellés longs peuvent passer sur deux lignes sur cellulaire
   const tabStyle = { textAlign: 'center', lineHeight: 1.15, whiteSpace: 'normal', minWidth: 0, flex: '1 1 0', padding: '8px 2px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  const onSeasons = pathname.startsWith('/admin/saisons');
+  const adminLinks = [['/admin', '🏒 Bureau'], ['/admin/saisons', '🗄️ Saisons et archives'], ['/admin/comptes', '👤 Comptes']];
+  const adminOn = (href) => (href === '/admin' ? pathname === '/admin' || (pathname.startsWith('/admin') && !subPage) : pathname.startsWith(href));
 
   return (
     <div className="shell">
@@ -108,10 +110,10 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
         </div>
       </header>
       {ctx.profile.is_admin && pathname.startsWith('/admin') && (
-        <div style={{ padding: '10px 18px 0', display: 'flex', justifyContent: 'flex-end' }}>
-          <Link href={onSeasons ? '/admin' : '/admin/saisons'} className="btn secondary small">
-            {onSeasons ? '← Bureau du commissaire' : '🗄️ Saisons et archives'}
-          </Link>
+        <div style={{ padding: '10px 18px 0', display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+          {adminLinks.map(([href, label]) => (
+            <Link key={href} href={href} className={'btn small' + (adminOn(href) ? '' : ' secondary')} aria-current={adminOn(href) ? 'page' : undefined}>{label}</Link>
+          ))}
         </div>
       )}
       {showChampion && (
