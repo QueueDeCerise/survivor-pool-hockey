@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell';
 import { supabase, frError } from '@/lib/supabase';
 import { ENTRY_FEE, INTERAC_EMAIL, TIMEZONE } from '@/lib/config';
 import { fmtDate } from '@/lib/time';
+import { gmailHref, mailtoHref } from '@/lib/mail';
 import s from './inscriptions.module.css';
 
 // Date et heure locales (Toronto), format tableur: 2026-10-24 21:07
@@ -79,13 +80,15 @@ function Roster() {
     catch (e) { setNote('Copie impossible sur cet appareil. Utilise plutôt « Exporter (Excel) ».'); }
   };
 
-  const remindHref = () => {
+  const reminder = () => {
     if (!round || unpaid.length === 0) return null;
     const subject = `Survivor Pool Hockey · Paiement de la ronde ${round.number}`;
     const body = `Salut!\n\nPetit rappel amical: ton inscription de ${fee} $ à la ronde ${round.number} (début ${fmtDate(round.start_date)}) n'est pas encore payée.\n\nEnvoie ton virement Interac à ${INTERAC_EMAIL} avant le début du premier match. Sans paiement, ton inscription pourrait être retirée.\n\nUn joueur par jour. Survis ou disparais.\nCommissaire Gordon`;
-    return `mailto:?bcc=${unpaid.map((r) => encodeURIComponent(r.email)).join(',')}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return { bcc: unpaid.map((r) => r.email), subject, body };
   };
-  const href = remindHref();
+  const msg = reminder();
+  const href = msg ? gmailHref(msg) : null;
+  const hrefOther = msg ? mailtoHref(msg) : null;
 
   return (
     <main className="page">
@@ -125,7 +128,7 @@ function Roster() {
                     <td className={s.num}>{i + 1}</td>
                     <td>{r.display_name}{r.left_pool && <span className={s.muted}> (a quitté le pool)</span>}</td>
                     <td>{r.full_name}</td>
-                    <td>{r.email ? <a href={`mailto:${r.email}`}>{r.email}</a> : <span className={s.muted}>—</span>}</td>
+                    <td>{r.email ? <a href={gmailHref({ to: r.email })} target="_blank" rel="noreferrer">{r.email}</a> : <span className={s.muted}>—</span>}</td>
                     <td className={s.mono}>{fmtStamp(r.registered_at)}</td>
                     <td className={s.mono}>{r.paid ? 'Oui' : 'Non'}</td>
                     <td className={s.mono}>{fmtStamp(r.paid_at)}</td>
@@ -137,12 +140,12 @@ function Roster() {
 
           <div className={s.actions}>
             {href
-              ? <a className="btn" href={href}>Relancer les non-payés ({unpaid.length})</a>
+              ? <a className="btn" href={href} target="_blank" rel="noreferrer">Relancer les non-payés ({unpaid.length})</a>
               : <button className="btn" disabled>Relancer les non-payés (0)</button>}
             <button className="btn secondary" onClick={copyTable} disabled={!shown.length}>Copier le tableau</button>
             <button className="btn secondary" onClick={exportCsv} disabled={!shown.length}>Exporter (Excel)</button>
           </div>
-          <p className="fine" style={{ margin: 0 }}>« Relancer » ouvre ton application de courriel avec un rappel prêt à envoyer. Les adresses sont en copie cachée: personne ne voit celles des autres.</p>
+          <p className="fine" style={{ margin: 0 }}>« Relancer » ouvre Gmail dans un nouvel onglet avec un rappel prêt à envoyer. Les adresses sont en copie cachée: personne ne voit celles des autres.{hrefOther && <> Gmail ne s’ouvre pas? <a href={hrefOther}>Utiliser mon autre logiciel de courriel</a>.</>}</p>
         </>
       )}
     </main>
