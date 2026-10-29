@@ -83,7 +83,7 @@ function Roster() {
   const reminder = () => {
     if (!round || unpaid.length === 0) return null;
     const subject = `Survivor Pool Hockey · Paiement de la ronde ${round.number}`;
-    const body = `Salut!\n\nPetit rappel amical: ton inscription de ${fee} $ à la ronde ${round.number} (début ${fmtDate(round.start_date)}) n'est pas encore payée.\n\nEnvoie ton virement Interac à ${INTERAC_EMAIL} avant le début du premier match. Sans paiement, ton inscription pourrait être retirée.\n\nUn joueur par jour. Survis ou disparais.\nCommissaire Gordon`;
+    const body = `Salut!\n\nPetit rappel amical: ton inscription de ${fee} $ à la ronde ${round.number} (début ${fmtDate(round.start_date)}) n'est pas encore payée.\n\nEnvoie ton virement Interac à ${INTERAC_EMAIL} avant le début du premier match. Sans paiement, ton inscription pourrait être retirée.\n\nUn joueur par jour. Survis ou disparais.\nCommissaire Gordon\n\n---\nCe message a été généré automatiquement par l'application Survivor Pool Hockey. Si tu as déjà payé, ne tiens pas compte de ce rappel, ou réponds à ce courriel pour qu'on vérifie ensemble.`;
     return { bcc: unpaid.map((r) => r.email), subject, body };
   };
   const msg = reminder();
