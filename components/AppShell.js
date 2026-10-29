@@ -80,7 +80,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
     ? [['/admin', 'Gestion'], ['/du-jour', 'Prédictions du jour'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']]
     : [['/predictions', 'Mes prédictions'], ['/du-jour', 'Prédictions du jour'], ['/classement', 'Classement'], ['/vestiaire', 'Vestiaire'], ['/profil', 'Profil']];
 
-  const subPage = pathname.startsWith('/admin/saisons') || pathname.startsWith('/admin/comptes');
+  const subPage = pathname.startsWith('/admin/saisons') || pathname.startsWith('/admin/comptes') || pathname.startsWith('/admin/inscriptions');
   const showChampion = champion && (pathname.startsWith('/predictions') || (pathname.startsWith('/admin') && !subPage));
   // Le « x » apparaît après 2 jours d'affichage
   const canHide = champion && champion.finished_at && Date.now() - new Date(champion.finished_at).getTime() >= 2 * 86400000;
@@ -91,7 +91,7 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
 
   // 5 onglets: les libellés longs peuvent passer sur deux lignes sur cellulaire
   const tabStyle = { textAlign: 'center', lineHeight: 1.15, whiteSpace: 'normal', minWidth: 0, flex: '1 1 0', padding: '8px 2px', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  const adminLinks = [['/admin', '🏒 Bureau'], ['/admin/saisons', '🗄️ Saisons et archives'], ['/admin/comptes', '👤 Comptes']];
+  const adminLinks = [['/admin', '🏒 Bureau'], ['/admin/inscriptions', '📋 Inscriptions'], ['/admin/saisons', '🗄️ Saisons et archives'], ['/admin/comptes', '👤 Comptes']];
   const adminOn = (href) => (href === '/admin' ? pathname === '/admin' || (pathname.startsWith('/admin') && !subPage) : pathname.startsWith(href));
 
   return (

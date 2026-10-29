@@ -1,0 +1,17 @@
+.bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+.sum { font-size: .9rem; color: var(--muted); }
+.filter { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; cursor: pointer; }
+.wrap { overflow-x: auto; border: 1px solid #c9ced4; background: #fff; }
+.t { border-collapse: collapse; width: 100%; font-size: .86rem; color: #1b1f24; }
+.t th, .t td { border: 1px solid #d5d9de; padding: 4px 8px; text-align: left; white-space: nowrap; }
+.t th { background: #eef0f2; font-weight: 700; font-size: .78rem; position: sticky; top: 0; }
+.t tbody tr:nth-child(even) td { background: #f8f9fa; }
+.t a { color: #1d5f99; text-decoration: none; }
+.t a:hover { text-decoration: underline; }
+.unpaid td { color: #a3131a; }
+.unpaid td a { color: #a3131a; }
+.num { text-align: right !important; color: #6b7480; width: 1%; }
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: .8rem; }
+.muted { color: #8a929c; }
+.empty { text-align: center !important; color: #6b7480; padding: 14px !important; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
