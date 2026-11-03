@@ -116,6 +116,14 @@ export default function AppShell({ children, requireAdmin = false, allowWithoutR
           ))}
         </div>
       )}
+      {pathname.startsWith('/classement') && (
+        <div style={{ padding: '10px 18px 0', display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+          {[['/classement', '🏆 Classement'], ['/classement/stats', '📊 Statistiques']].map(([href, label]) => {
+            const on = href === '/classement' ? !pathname.startsWith('/classement/stats') : pathname.startsWith(href);
+            return <Link key={href} href={href} className={'btn small' + (on ? '' : ' secondary')} aria-current={on ? 'page' : undefined}>{label}</Link>;
+          })}
+        </div>
+      )}
       {showChampion && (
         <div style={{ padding: '18px 18px 0' }}>
           <Champion compact name={champion.display_name} round={champion.round_number} pot={champion.pot} winners={champion.winners} share={champion.share} onClose={canHide ? hideChampion : undefined} />
