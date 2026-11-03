@@ -80,8 +80,8 @@ function MyStats() {
       </div>
 
       <div className={s.grid}>
-        <Record emoji="💣" title="Mes meilleurs choix" sub="Le plus de points en une soirée" items={bestPicks} empty="Pas encore de point récolté." />
-        <Record emoji="⭐" title="Mes joueurs fétiches" sub="Ceux que je choisis le plus" items={favs} empty="Pas encore de choix compté." />
+        <Record emoji="💣" title="Mes meilleurs choix" sub="Rondes terminées seulement" items={bestPicks} empty="Disponible à la fin de ta première ronde." />
+        <Record emoji="⭐" title="Mes joueurs fétiches" sub="Rondes terminées seulement" items={favs} empty="Disponible à la fin de ta première ronde." />
       </div>
     </>
   );
@@ -140,7 +140,7 @@ function Page_({ ctx }) {
         <>
           <h2 className={s.h2}>Mes stats</h2>
           <MyStats />
-          <p className="fine" style={{ margin: 0 }}>Tes stats incluent la ronde en cours et ne sont affichées qu’à toi.</p>
+          <p className="fine" style={{ margin: 0 }}>Tes chiffres incluent la ronde en cours et ne sont affichés qu’à toi, mais jamais le nom des joueurs que tu y as choisis. À toi de t’en souvenir pour éviter les doublons 😉</p>
         </>
       )}
       <h2 className={s.h2}>Le pool</h2>
