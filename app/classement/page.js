@@ -64,7 +64,7 @@ function Standings() {
                 <div className="fine">{alive} survivant{alive > 1 ? 's' : ''} sur {rows.length}</div>
               </div>
               {showDay && (
-<div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginLeft: 'auto', paddingRight: 24 }}>
+<div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginLeft: 'auto', paddingRight: 20 }}>
                   <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>Classement au jour</span>
                   <span className="mono" style={{ fontSize: '3.5rem', fontWeight: 700, lineHeight: 1, color: 'var(--green)' }}>{dayNum}</span>
                 </div>
