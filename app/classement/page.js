@@ -4,7 +4,7 @@ import AppShell from '@/components/AppShell';
 import Lives from '@/components/Lives';
 import Champion from '@/components/Champion';
 import { supabase } from '@/lib/supabase';
-import { fmtDate } from '@/lib/time';
+import { fmtDate, todayLocal } from '@/lib/time';
 
 function Standings() {
   const [rounds, setRounds] = useState([]);
@@ -13,6 +13,7 @@ function Standings() {
   const [pot, setPot] = useState(0);
   const [champs, setChamps] = useState([]);
   const [tie, setTie] = useState(null);
+  const [dayNum, setDayNum] = useState(0);
 
   useEffect(() => {
     supabase.from('rounds').select('*').order('number', { ascending: false }).then(({ data }) => {
@@ -31,9 +32,18 @@ function Standings() {
     supabase.rpc('standings', { p_round: round.id }).then(({ data }) => setRows(data || []));
     supabase.rpc('round_pot', { p_round: round.id }).then(({ data }) => setPot(Number(data) || 0));
     supabase.rpc('round_tie', { p_round: round.id }).then(({ data }) => setTie((data || [])[0] || null));
+
+    // Jour de la ronde: même calcul que Prédictions du jour
+    setDayNum(0);
+    if (round.status === 'en_cours') {
+      supabase.from('game_days').select('game_date', { count: 'exact', head: true })
+        .gte('game_date', round.start_date).lte('game_date', todayLocal())
+        .then(({ count }) => setDayNum(count || 0));
+    }
   }, [roundId]); // eslint-disable-line
 
   const alive = rows.filter((r) => r.lives > 0).length;
+  const showDay = !champ && round && round.status === 'en_cours' && dayNum > 0;
 
   return (
     <main className="page">
@@ -47,10 +57,18 @@ function Standings() {
           {champ ? (
             <Champion name={champ.display_name} round={champ.round_number} pot={champ.pot} winners={champ.winners} share={champ.share} />
           ) : (
-            <div>
-              <div className="eyebrow">Ronde {round.number} · début {fmtDate(round.start_date)}</div>
-              <h1><span className="mono">{pot} $</span> dans la cagnotte</h1>
-              <div className="fine">{alive} survivant{alive > 1 ? 's' : ''} sur {rows.length}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-end', gap: '12px 24px' }}>
+              <div>
+                <div className="eyebrow">Ronde {round.number} · début {fmtDate(round.start_date)}</div>
+                <h1><span className="mono">{pot} $</span> dans la cagnotte</h1>
+                <div className="fine">{alive} survivant{alive > 1 ? 's' : ''} sur {rows.length}</div>
+              </div>
+              {showDay && (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginLeft: 'auto' }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>Classement au jour</span>
+                  <span className="mono" style={{ fontSize: '3.5rem', fontWeight: 700, lineHeight: 1 }}>{dayNum}</span>
+                </div>
+              )}
             </div>
           )}
           {!champ && tie && tie.tie_status === 'decision' && (
@@ -60,7 +78,7 @@ function Standings() {
             <div className="msg info"><b>Prolongation · jour {Math.min(5, (tie.overtime_day || 0) + 1)} de 5.</b> Une vie chacun, mort subite. Le dernier survivant l’emporte.</div>
           )}
           <section className="panel">
-            <h2>Classement</h2>
+            {!showDay && <h2>{round.status === 'terminee' ? 'Classement final' : 'Classement'}</h2>}
             <div className="list">
               {rows.map((r, i) => {
                 const isChamp = champ && champ.display_name.split(' · ').includes(r.display_name);
