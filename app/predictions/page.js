@@ -65,6 +65,11 @@ const entry = entries.find((e) => e.round_id === roundId);
 const myActive = entries.filter((e) => rounds.find((r) => r.id === e.round_id && r.status !== 'terminee'));
 const openRounds = rounds.filter((r) => r.status === 'inscriptions' && !entries.find((e) => e.round_id === r.id) && !(closes[r.id] && now >= new Date(closes[r.id]).getTime()));
 const roundDays = days.filter((d) => round && d.game_date >= round.start_date);
+  // Si la date choisie n'appartient pas à la ronde, sauter à sa première journée
+  useEffect(() => {
+    if (!round || roundDays.length === 0) return;
+    if (!roundDays.find((d) => d.game_date === date)) setDate(roundDays[0].game_date);
+  }, [roundId, days]); // eslint-disable-line
 const current = picks.find((p) => p.round_id === roundId && p.game_date === date);
 const currentPlayer = current && players.find((p) => p.id === current.player_id);
 const canChange = day && entry && entry.lives > 0 && !started;
