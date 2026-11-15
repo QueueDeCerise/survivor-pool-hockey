@@ -96,7 +96,7 @@ function DailyPicks() {
   useEffect(() => {
     supabase.from('rounds').select('*').order('number', { ascending: false }).then(({ data }) => {
       setRounds(data || []);
-      const active = (data || []).find((r) => r.status === 'en_cours') || (data || [])[0];
+      const active = (data || []).filter((r) => r.status === 'en_cours').pop() || (data || [])[0];
       if (active) setRoundId(active.id);
     });
     supabase.rpc('round_champions').then(({ data }) => { setChamps(data || []); setChampsLoaded(true); });
