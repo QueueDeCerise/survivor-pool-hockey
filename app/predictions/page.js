@@ -189,7 +189,7 @@ return <button key={e.round_id} className={'chip' + (e.round_id === roundId ? ' 
 <div className={'msg ' + (started ? 'err' : 'warn')}>
 {started
 ? <><b>Choix fermés</b> depuis le début du premier match ({fmtTime(day.first_game_at)}).</>
-: <><b>Heure limite: {fmtTime(day.first_game_at)}</b>, au début du premier match, pour faire ou modifier ton choix.</>}
+: <><b>Heure limite: {fmtShort(day.game_date)}, {fmtTime(day.first_game_at)}</b>, au début du premier match, pour faire ou modifier ton choix.</>}
 </div>
 <div className={'msg ' + (current ? 'ok' : 'info')}>
 {current ? <>Ton choix privé: <b>{currentPlayer ? currentPlayer.full_name : '…'}</b></> : 'Aucun choix pour cette journée.'}
